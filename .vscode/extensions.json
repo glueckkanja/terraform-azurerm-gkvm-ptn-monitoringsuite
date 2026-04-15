@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "hashicorp.terraform",
+    "azure.azure-api",
+    "editorconfig.editorconfig"
+  ]
+}

@@ -1,0 +1,44 @@
+formatter: markdown table
+
+version: ">= 0.18.0"
+
+sections:
+  show:
+    - header
+    - requirements
+    - providers
+    - resources
+    - inputs
+    - outputs
+
+content: |-
+  {{ .Header }}
+
+  <!-- BEGIN_TF_DOCS -->
+  {{ .Requirements }}
+
+  {{ .Providers }}
+
+  {{ .Resources }}
+
+  {{ .Inputs }}
+
+  {{ .Outputs }}
+  <!-- END_TF_DOCS -->
+
+output:
+  file: README.md
+  mode: replace
+
+sort:
+  enabled: true
+  by: required
+
+settings:
+  anchor: true
+  color: true
+  escape: true
+  indent: 2
+  required: true
+  sensitive: true
+  type: true

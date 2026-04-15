@@ -1,0 +1,18 @@
+{
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.bracketPairColorization.enabled": true,
+  "[terraform]": {
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.formatOnSave": true
+  },
+  "[terraform-vars]": {
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.formatOnSave": true
+  },
+  "files.associations": {
+    "*.tf": "terraform",
+    "*.tfvars": "terraform-vars",
+    "*.tftest.hcl": "terraform"
+  }
+}

@@ -1,0 +1,41 @@
+# OpenTofu / Terraform
+.terraform/
+.tofu/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+
+# Secrets & variable files (may contain credentials)
+*.tfvars
+*.tfvars.json
+.env
+.env.*
+
+# AVM build artifacts
+avmmakefile
+avm.tflint.hcl
+avm.tflint_module.hcl
+avm.tflint_example.hcl
+GNUmakefile
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Policy assignments (generated)
+policy/
