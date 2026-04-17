@@ -61,6 +61,6 @@ output "warnings" {
   description = "Operational warnings. Check this output for potential configuration issues."
   value = compact([
     length(local.all_action_groups) == 0 ? "WARNING: No action groups configured. Alerts will fire but no notifications will be sent." : "",
-    var.alert_profile != null && !contains(keys(local._raw_defaults), var.alert_profile) ? "WARNING: alert_profile '${var.alert_profile}' does not match any YAML file in defaults/. Zero default alerts will be created." : "",
+    var.alert_profile != null && !contains(keys(local._provider_defaults_substituted), var.alert_profile) ? "WARNING: alert_profile '${var.alert_profile}' not found in defaults_override. Zero default alerts will be created. Pass gkvm_monitoring_profiles.this.profiles via defaults_override." : "",
   ])
 }

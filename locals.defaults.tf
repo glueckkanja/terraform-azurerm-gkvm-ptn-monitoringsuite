@@ -1,11 +1,10 @@
 # ---------------------------------------------------------------------------
 # Default alert library loader
 #
-# Two sources, merged with override taking precedence:
-# 1. Built-in: YAML files in defaults/*.yaml (shipped with module)
-# 2. Provider: var.defaults_override from gkvm_monitoring_profiles data source
+# Single source: var.defaults_override from gkvm_monitoring_profiles data source
+# (JSON strings → parsed maps, with template variable substitution via replace())
 #
-# YAML/JSON schema:
+# YAML/JSON schema expected in each profile:
 #   metric_alerts:
 #     <rule_key>:
 #       name, description, severity, window_size, frequency, metric_namespace
@@ -21,25 +20,7 @@
 
 locals {
   # -------------------------------------------------------------------------
-  # Source 1: Built-in YAML defaults (shipped with module — basic profiles)
-  # -------------------------------------------------------------------------
-  _default_alert_files = fileset("${path.module}/defaults", "*.yaml")
-
-  _template_vars = {
-    primary_scope = local.primary_scope
-    remote_ip     = var.remote_ip
-    bandwidth     = var.bandwidth
-  }
-
-  _builtin_defaults = {
-    for file in local._default_alert_files :
-    trimsuffix(file, ".yaml") => yamldecode(
-      templatefile("${path.module}/defaults/${file}", local._template_vars)
-    )
-  }
-
-  # -------------------------------------------------------------------------
-  # Source 2: Provider-served defaults (from gkvm_monitoring_profiles)
+  # Provider-served defaults (from gkvm_monitoring_profiles)
   # JSON strings → parsed maps, with template variable substitution via replace()
   # -------------------------------------------------------------------------
   _provider_defaults = {
@@ -67,15 +48,10 @@ locals {
   }
 
   # -------------------------------------------------------------------------
-  # Merge: provider overrides built-in (same profile name → provider wins)
-  # -------------------------------------------------------------------------
-  _raw_defaults = merge(local._builtin_defaults, local._provider_defaults_substituted)
-
-  # -------------------------------------------------------------------------
   # Metric alerts: apply config overrides (name, severity, threshold, etc.)
   # -------------------------------------------------------------------------
   _loaded_metric_alerts = {
-    for profile, data in local._raw_defaults : profile => {
+    for profile, data in local._provider_defaults_substituted : profile => {
       for rule_key, rule in try(data.metric_alerts, {}) : rule_key => merge(rule, {
         name        = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "name", rule.name)
         severity    = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "severity", rule.severity)
@@ -97,7 +73,7 @@ locals {
   # Log alerts: apply config overrides + resolve query_template → query
   # -------------------------------------------------------------------------
   _loaded_log_alerts = {
-    for profile, data in local._raw_defaults : profile => {
+    for profile, data in local._provider_defaults_substituted : profile => {
       for rule_key, rule in try(data.log_alerts, {}) : rule_key => merge(rule, {
         name                              = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "name", rule.name)
         severity                          = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "severity", rule.severity)
@@ -108,7 +84,7 @@ locals {
         time_aggregation_method           = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "time_aggregation_method", try(rule.time_aggregation_method, "Count"))
         metric_measure_column             = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "metric_measure_column", try(rule.metric_measure_column, null))
 
-        # query_template has variables substituted (by templatefile for built-in, by replace for provider)
+        # query_template has template variables substituted via replace() above
         query = try(rule.query_template, try(rule.query, ""))
 
         trigger = merge(try(rule.trigger, {}), {

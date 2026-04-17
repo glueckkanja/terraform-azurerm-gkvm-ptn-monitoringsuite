@@ -29,7 +29,7 @@ variable "alert_profile" {
 variable "defaults_override" {
   type        = map(string)
   default     = {}
-  description = "Map of profile_name → JSON string from the gkvm provider data source (gkvm_monitoring_profiles). Merged with built-in defaults — override profiles take precedence. Each JSON string must contain {metric_alerts: {...}, log_alerts: {...}}."
+  description = "Map of profile_name → JSON string from the gkvm provider data source (gkvm_monitoring_profiles). This is the sole source of default alert profiles. Each JSON string must contain {metric_alerts: {...}, log_alerts: {...}}."
 }
 
 variable "location" {

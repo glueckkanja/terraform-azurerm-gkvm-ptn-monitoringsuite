@@ -3,15 +3,26 @@ mock_provider "standesamt" {}
 mock_provider "modtm" {}
 mock_provider "random" {}
 
+run "setup" {
+  module {
+    source = "./tests/unit/setup"
+  }
+
+  providers = {
+    azurerm = azurerm
+    modtm   = modtm
+    random  = random
+  }
+}
+
 variables {
-  scopes              = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
+  scopes              = ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Network/virtualNetworks/vnet-test"]
   alert_profile       = null
   apply_default_rules = false
   location            = "westeurope"
   resource_group_name = "rg-monitoring-test"
   environment         = "test"
   convention          = "passthrough"
-  naming_configuration = {}
   tags                = {}
 
   log_analytics_workspace_id       = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.OperationalInsights/workspaces/law-test"
@@ -41,6 +52,10 @@ variables {
 
 run "creates_module_action_group" {
   command = plan
+
+  variables {
+    naming_configuration = run.setup.naming_configuration
+  }
 
   assert {
     condition     = length(azurerm_monitor_action_group.this) == 1
