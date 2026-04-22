@@ -39,7 +39,7 @@ locals {
               rule.query_template,
               "$${primary_scope}", local.primary_scope),
               "$${remote_ip}", var.remote_ip),
-              "$${bandwidth}", tostring(var.bandwidth)),
+            "$${bandwidth}", tostring(var.bandwidth)),
             try(rule.query_template, "")
           )
         })

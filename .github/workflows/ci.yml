@@ -100,10 +100,13 @@ jobs:
       - name: Create plugin cache directory
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
-      # tofu test runs its own init pass that covers both the root module and any
-      # modules referenced in run.module.source blocks. Pre-initialising the
-      # setup sub-module separately creates a conflict. Let tofu test handle all
-      # initialisation so module registration stays consistent.
+      # -test-directory tells tofu init to also process test files in tests/unit/
+      # so it registers the ./tests/unit/setup module reference. Without this
+      # flag init only scans tests/ one level deep, misses tests/unit/, and
+      # tofu test fails with "Module not installed".
+      - name: Initialise providers and test modules
+        run: tofu init -test-directory=tests/unit
+
       - name: Run unit tests
         run: tofu test --test-directory=tests/unit
 
