@@ -31,7 +31,7 @@ variables {
   log_analytics_workspace_id       = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.OperationalInsights/workspaces/law-test"
   log_analytics_workspace_location = "westeurope"
 
-  action_group_ids = [
+  action_group_routing = [
     {
       action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Insights/actionGroups/ag-test"
       severities      = [0, 1, 2, 3, 4]

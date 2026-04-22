@@ -70,7 +70,7 @@ variable "custom_log_alerts" {
     time_window                       = optional(string, "PT15M")
     frequency                         = optional(string, "PT5M")
     query                             = string
-    mute_actions_after_alert_duration  = optional(string)
+    mute_actions_after_alert_duration = optional(string)
     auto_mitigation_enabled           = optional(bool, true)
     time_aggregation_method           = optional(string, "Count")
     metric_measure_column             = optional(string)
@@ -144,13 +144,13 @@ variable "custom_metric_alerts" {
 # Action groups — external (passed in)
 # -----------------------------------------------------------------------------
 
-variable "action_group_ids" {
+variable "action_group_routing" {
   type = list(object({
     action_group_id = string
     severities      = list(number)
   }))
   default     = []
-  description = "External action groups with severity-based routing. Each action group receives alerts matching its configured severity levels (0=Critical, 1=Error, 2=Warning, 3=Informational, 4=Verbose)."
+  description = "External (pre-existing) action groups with severity-based routing. Each entry maps an action group ID to the severity levels (0=Critical … 4=Verbose) it should receive. Use action_groups to create new action groups within this module."
 }
 
 # -----------------------------------------------------------------------------

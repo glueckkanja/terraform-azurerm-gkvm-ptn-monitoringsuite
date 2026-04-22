@@ -19,7 +19,7 @@ locals {
     }
   ]
 
-  all_action_groups = concat(var.action_group_ids, local.created_action_groups)
+  all_action_groups = concat(var.action_group_routing, local.created_action_groups)
 }
 
 # ---------------------------------------------------------------------------
@@ -160,7 +160,7 @@ locals {
           alert_key            = query
         }
       ] : []
-    ) if (try(config.identity.enabled, false) == true || try(config.identity.enable, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
+    ) if(try(config.identity.enabled, false) == true || try(config.identity.enable, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
   ])
 
   # Default log alert role assignments (v2 only)
@@ -187,7 +187,7 @@ locals {
           alert_key            = query
         }
       ] : []
-    ) if (try(config.identity.enable, false) == true || try(config.identity.enabled, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
+    ) if(try(config.identity.enable, false) == true || try(config.identity.enabled, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
   ])
 
   all_log_alert_role_assignments = concat(
