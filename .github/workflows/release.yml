@@ -26,7 +26,7 @@ jobs:
           # include all commits since the previous tag.
           fetch-depth: 0
 
-      - uses: opentofu/setup-opentofu@ae80d4ecaab946d8f5ff18397fbf6d0686c86c72 # v1.0.5
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
         with:
           tofu_version: 1.9.0
           tofu_wrapper: false

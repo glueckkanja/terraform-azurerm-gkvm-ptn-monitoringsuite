@@ -33,7 +33,7 @@ jobs:
       # tag mutation. Dependabot will propose PRs when new versions are released.
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: opentofu/setup-opentofu@ae80d4ecaab946d8f5ff18397fbf6d0686c86c72 # v1.0.5
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
         with:
           tofu_version: 1.9.0
           # Disable the wrapper so exit codes from tofu are passed through
@@ -51,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: opentofu/setup-opentofu@ae80d4ecaab946d8f5ff18397fbf6d0686c86c72 # v1.0.5
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
         with:
           tofu_version: 1.9.0
           tofu_wrapper: false
@@ -80,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: opentofu/setup-opentofu@ae80d4ecaab946d8f5ff18397fbf6d0686c86c72 # v1.0.5
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
         with:
           tofu_version: 1.9.0
           tofu_wrapper: false
@@ -121,14 +121,14 @@ jobs:
       # but do not block the CI run. The SARIF upload on the next step is what
       # makes findings actionable; a hard fail here would hide the report when
       # Checkov exits non-zero before the upload step runs.
-      - uses: bridgecrewio/checkov-action@33ddd22ee0e8b31e8c5b7c487a58a2a54e1cbb2f # v12.2964.0
+      - uses: bridgecrewio/checkov-action@3203f966a7ccd680cd8f6aaa3c3c5b0b3e9afa32 # v12.3099.0
         with:
           framework: terraform
           soft_fail: true
           output_format: cli,sarif
           output_file_path: console,results.sarif
 
-      - uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+      - uses: github/codeql-action/upload-sarif@f35333b910470a5408cb081b68f0701254a7d27b # v3.28.18
         # Run on success or failure so SARIF is uploaded even when Checkov found
         # violations, but skip on cancellation to avoid uploading partial results.
         if: success() || failure()
