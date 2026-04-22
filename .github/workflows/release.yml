@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    # Trigger only on semver tags: v1.2.3, v0.1.0-alpha.1, etc.
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+# Deny all by default; the release job needs write to create the GitHub release.
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Validate and publish GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to create the GitHub Release and upload assets.
+      contents: write
+    steps:
+      # Pin all actions to full commit SHAs to prevent supply-chain attacks via
+      # tag mutation. Dependabot will propose PRs when new versions are released.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Full history is required so the auto-generated release notes can
+          # include all commits since the previous tag.
+          fetch-depth: 0
+
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+        with:
+          tofu_version: 1.9.0
+          tofu_wrapper: false
+
+      - name: Initialise providers
+        run: tofu init
+
+      # Validate before publishing. A broken module must not ship as a release.
+      - name: Validate module configuration
+        run: tofu validate
+
+      - uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
+        with:
+          generate_release_notes: true
+          # Tags containing a hyphen (e.g. v1.0.0-alpha.1, v2.3.0-beta) are
+          # marked as pre-releases automatically so consumers who pin to
+          # stable releases are not inadvertently pulled onto pre-release code.
+          prerelease: ${{ contains(github.ref_name, '-') }}

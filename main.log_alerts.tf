@@ -8,13 +8,13 @@ locals {
     frequency = (
       can(regex("^PT(\\d+)M$", config.frequency)) ? tonumber(regex("^PT(\\d+)M$", config.frequency)[0]) :
       can(regex("^PT(\\d+)H$", config.frequency)) ? tonumber(regex("^PT(\\d+)H$", config.frequency)[0]) * 60 :
-      can(regex("^P(\\d+)D$", config.frequency))  ? tonumber(regex("^P(\\d+)D$", config.frequency)[0]) * 1440 :
+      can(regex("^P(\\d+)D$", config.frequency)) ? tonumber(regex("^P(\\d+)D$", config.frequency)[0]) * 1440 :
       config.frequency
     )
     time_window = (
       can(regex("^PT(\\d+)M$", config.time_window)) ? tonumber(regex("^PT(\\d+)M$", config.time_window)[0]) :
       can(regex("^PT(\\d+)H$", config.time_window)) ? tonumber(regex("^PT(\\d+)H$", config.time_window)[0]) * 60 :
-      can(regex("^P(\\d+)D$", config.time_window))  ? tonumber(regex("^P(\\d+)D$", config.time_window)[0]) * 1440 :
+      can(regex("^P(\\d+)D$", config.time_window)) ? tonumber(regex("^P(\\d+)D$", config.time_window)[0]) * 1440 :
       config.time_window
     )
   } }

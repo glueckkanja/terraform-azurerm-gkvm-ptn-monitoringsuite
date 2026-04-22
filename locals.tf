@@ -1,8 +1,4 @@
 locals {
-  module_tag = {
-    "module" = basename(abspath(path.module))
-  }
-
   # Primary scope for query formatting (first entry in scopes list)
   primary_scope = var.scopes[0]
 }

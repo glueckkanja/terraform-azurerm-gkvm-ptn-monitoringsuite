@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  # All GitHub Actions version bumps in one weekly PR.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+    open-pull-requests-limit: 1
+
+  # All OpenTofu provider version bumps in one weekly PR.
+  - package-ecosystem: terraform
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      terraform-providers:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+    open-pull-requests-limit: 1
