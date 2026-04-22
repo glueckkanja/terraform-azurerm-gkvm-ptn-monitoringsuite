@@ -40,6 +40,10 @@ jobs:
           # directly; the wrapper can swallow non-zero exits in some versions.
           tofu_wrapper: false
 
+      # TF_PLUGIN_CACHE_DIR is set at workflow level; tofu validates it exists
+      # even for fmt. Create it so the check does not abort before formatting.
+      - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
       - name: Check formatting
         run: tofu fmt -check -recursive
 
@@ -96,14 +100,10 @@ jobs:
       - name: Create plugin cache directory
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
-      # The setup sub-module uses the real standesamt provider (not mocked), so
-      # it must be initialised independently before the module root init runs.
-      - name: Init setup sub-module
-        run: tofu -chdir=tests/unit/setup init
-
-      - name: Initialise providers (module root)
-        run: tofu init
-
+      # tofu test runs its own init pass that covers both the root module and any
+      # modules referenced in run.module.source blocks. Pre-initialising the
+      # setup sub-module separately creates a conflict. Let tofu test handle all
+      # initialisation so module registration stays consistent.
       - name: Run unit tests
         run: tofu test --test-directory=tests/unit
 
@@ -131,7 +131,10 @@ jobs:
       - uses: github/codeql-action/upload-sarif@f35333b910470a5408cb081b68f0701254a7d27b # v3.28.18
         # Run on success or failure so SARIF is uploaded even when Checkov found
         # violations, but skip on cancellation to avoid uploading partial results.
+        # continue-on-error: org-level restrictions may deny security-events API
+        # access; findings still appear in the console log above.
         if: success() || failure()
+        continue-on-error: true
         with:
           sarif_file: results.sarif
           category: checkov
