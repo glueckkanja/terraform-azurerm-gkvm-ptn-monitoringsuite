@@ -42,3 +42,6 @@ policy/
 
 # Standesamt
 .standesamt/
+
+# Claude Code session files (local only — not for public repos)
+.claude/

@@ -1,0 +1,22 @@
+version: 2
+
+updates:
+  # Keep OpenTofu provider versions current.
+  - package-ecosystem: terraform
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
+
+  # Keep GitHub Actions versions current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5

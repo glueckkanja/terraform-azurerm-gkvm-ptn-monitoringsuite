@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Deny all permissions at workflow level; each job grants only what it needs.
+permissions:
+  contents: read
+
+# Cancel any in-progress run for the same ref so a fast-follow push does not
+# queue behind a run it will supersede.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # A single shared plugin cache dir reduces provider download time across jobs.
+  # Each job still seeds/restores its own cache entry keyed on the lock file(s)
+  # it actually uses.
+  TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform.d/plugin-cache
+
+jobs:
+  format:
+    name: Verify OpenTofu formatting
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Pin all actions to full commit SHAs to prevent supply-chain attacks via
+      # tag mutation. Dependabot will propose PRs when new versions are released.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: opentofu/setup-opentofu@ae80d4ecaab946d8f5ff18397fbf6d0686c86c72 # v1.0.5
+        with:
+          tofu_version: 1.9.0
+          # Disable the wrapper so exit codes from tofu are passed through
+          # directly; the wrapper can swallow non-zero exits in some versions.
+          tofu_wrapper: false
+
+      - name: Check formatting
+        run: tofu fmt -check -recursive
+
+  validate:
+    name: Initialise and validate module configuration
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: opentofu/setup-opentofu@ae80d4ecaab946d8f5ff18397fbf6d0686c86c72 # v1.0.5
+        with:
+          tofu_version: 1.9.0
+          tofu_wrapper: false
+
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          # Key on terraform.tf — this project gitignores .terraform.lock.hcl,
+          # so the provider requirements file is the correct cache-bust input.
+          key: ${{ runner.os }}-tofu-${{ hashFiles('terraform.tf') }}
+
+      - name: Create plugin cache directory
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
+      - name: Initialise providers
+        run: tofu init
+
+      - name: Validate module configuration
+        run: tofu validate
+
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: opentofu/setup-opentofu@ae80d4ecaab946d8f5ff18397fbf6d0686c86c72 # v1.0.5
+        with:
+          tofu_version: 1.9.0
+          tofu_wrapper: false
+
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          # Both provider requirement files contribute to the cache key. This
+          # project gitignores .terraform.lock.hcl, so we key on the .tf files
+          # that declare provider versions instead.
+          key: ${{ runner.os }}-tofu-${{ hashFiles('terraform.tf', 'tests/unit/setup/main.tf') }}
+
+      - name: Create plugin cache directory
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
+      # The setup sub-module uses the real standesamt provider (not mocked), so
+      # it must be initialised independently before the module root init runs.
+      - name: Init setup sub-module
+        run: tofu -chdir=tests/unit/setup init
+
+      - name: Initialise providers (module root)
+        run: tofu init
+
+      - name: Run unit tests
+        run: tofu test --test-directory=tests/unit
+
+  security:
+    name: Static analysis (Checkov)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required to upload SARIF results to GitHub Code Scanning.
+      security-events: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # soft_fail: true — Checkov findings are surfaced in the Code Scanning UI
+      # but do not block the CI run. The SARIF upload on the next step is what
+      # makes findings actionable; a hard fail here would hide the report when
+      # Checkov exits non-zero before the upload step runs.
+      - uses: bridgecrewio/checkov-action@33ddd22ee0e8b31e8c5b7c487a58a2a54e1cbb2f # v12.2964.0
+        with:
+          framework: terraform
+          soft_fail: true
+          output_format: cli,sarif
+          output_file_path: console,results.sarif
+
+      - uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+        # Run on success or failure so SARIF is uploaded even when Checkov found
+        # violations, but skip on cancellation to avoid uploading partial results.
+        if: success() || failure()
+        with:
+          sarif_file: results.sarif
+          category: checkov
+
+  tflint:
+    name: Lint with TFLint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4.1.1
+        with:
+          tflint_version: v0.55.1
+
+      - name: Init TFLint
+        # GITHUB_TOKEN is passed here only so tflint --init can pull ruleset
+        # plugins from GitHub without hitting the unauthenticated rate limit.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: tflint --init
+
+      # Run against the module root only — not recursive. Descending into the
+      # tests/ tree produces false positives because test files use mock
+      # providers and intentionally incomplete configurations.
+      - name: Run TFLint
+        run: tflint
