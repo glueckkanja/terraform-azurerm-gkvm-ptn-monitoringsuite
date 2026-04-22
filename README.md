@@ -116,7 +116,7 @@ Both use severity routing: each action group specifies which severity levels (0-
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9, < 2.0 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 4.68.0, < 5.0 |
 | <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) | >= 0.3.5, < 1.0 |
@@ -126,15 +126,15 @@ Both use severity routing: each action group specifies which severity levels (0-
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | 4.69.0 |
-| <a name="provider_modtm"></a> [modtm](#provider\_modtm) | 0.3.5 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.8.1 |
+|------|---------|
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 4.68.0, < 5.0 |
+| <a name="provider_modtm"></a> [modtm](#provider\_modtm) | >= 0.3.5, < 1.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1, < 4.0 |
 
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [azurerm_monitor_action_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_action_group) | resource |
 | [azurerm_monitor_metric_alert.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_metric_alert) | resource |
 | [azurerm_monitor_scheduled_query_rules_alert.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_scheduled_query_rules_alert) | resource |
@@ -146,7 +146,7 @@ Both use severity routing: each action group specifies which severity levels (0-
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_action_group_routing"></a> [action\_group\_routing](#input\_action\_group\_routing) | External (pre-existing) action groups with severity-based routing. Each entry maps an action group ID to the severity levels (0=Critical … 4=Verbose) it should receive. Use action\_groups to create new action groups within this module. | <pre>list(object({<br/>    action_group_id = string<br/>    severities      = list(number)<br/>  }))</pre> | `[]` | no |
 | <a name="input_action_groups"></a> [action\_groups](#input\_action\_groups) | Action groups to create within the module. Each action group includes severity routing and one or more receiver types. | <pre>map(object({<br/>    short_name = string<br/>    severities = list(number)<br/>    enabled    = optional(bool, true)<br/><br/>    email_receivers = optional(map(object({<br/>      name                    = string<br/>      email_address           = string<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    webhook_receivers = optional(map(object({<br/>      name                    = string<br/>      service_uri             = string<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    sms_receivers = optional(map(object({<br/>      name         = string<br/>      country_code = string<br/>      phone_number = string<br/>    })), {})<br/><br/>    azure_app_push_receivers = optional(map(object({<br/>      name          = string<br/>      email_address = string<br/>    })), {})<br/><br/>    arm_role_receivers = optional(map(object({<br/>      name                    = string<br/>      role_id                 = string<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    logic_app_receivers = optional(map(object({<br/>      name                    = string<br/>      resource_id             = string<br/>      callback_url            = string<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    azure_function_receivers = optional(map(object({<br/>      name                     = string<br/>      function_app_resource_id = string<br/>      function_name            = string<br/>      http_trigger_url         = string<br/>      use_common_alert_schema  = optional(bool, true)<br/>    })), {})<br/>  }))</pre> | `{}` | no |
 | <a name="input_alert_profile"></a> [alert\_profile](#input\_alert\_profile) | Alert profile to apply default alerts for. Must match a profile name from built-in defaults or defaults\_override. Set to null to disable default alerts entirely. | `string` | `null` | no |
@@ -175,7 +175,7 @@ Both use severity routing: each action group specifies which severity levels (0-
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_action_groups"></a> [action\_groups](#output\_action\_groups) | Map of module-created action group resources. |
 | <a name="output_alert_count"></a> [alert\_count](#output\_alert\_count) | Count of created alerts by type. |
 | <a name="output_all_action_group_routing"></a> [all\_action\_group\_routing](#output\_all\_action\_group\_routing) | Unified list of all action groups (external + module-created) with severity routing. |
