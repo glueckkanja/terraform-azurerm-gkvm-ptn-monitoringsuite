@@ -9,10 +9,13 @@ This module provides a generalized, scope-based Azure monitoring alerting soluti
 ### Key features
 
 - **Generalized scoping** -- `scopes` (list) + `alert_profile` instead of `resource_id` + `resource_type`
+- **Optional alerting** -- deploy the module solely for action groups and/or health alerts by setting `alert_profile = null`, `apply_default_rules = false`, and passing no `custom_*_alerts`
 - **Hybrid action groups** -- pass external action groups AND/OR create new ones inside the module
 - **Severity-based routing** -- action groups only receive alerts matching their configured severity levels
 - **Default alert library** -- 13 built-in profiles with opt-in (appzone) or opt-out (all others) selection
 - **v1 + v2 log alerts** -- v2 preferred; v1 retained for metric trigger patterns
+- **Health alerts** -- Service Health and Resource Health activity log alerts at subscription scope, derived from `scopes`
+- **PagerDuty catalog** -- resolve webhook URLs through a central `pagerduty_config` map; never leaked in plan diffs
 - **Standesamt naming** -- consistent resource naming via provider-defined functions
 
 ## Usage
@@ -28,7 +31,7 @@ module "firewall_monitoring" {
   location            = "westeurope"
   resource_group_name = azurerm_resource_group.monitoring.name
 
-  action_group_ids = [
+  action_group_routing = [
     {
       action_group_id = azurerm_monitor_action_group.critical.id
       severities      = [0, 1]
@@ -58,10 +61,52 @@ Unlike other profiles where all defaults are enabled (opt-out via `disable_rule`
 
 The module supports two sources of action groups that are merged internally:
 
-1. **External** (`action_group_ids`) -- pre-existing action groups passed by ID
+1. **External** (`action_group_routing`) -- pre-existing action groups passed by ID
 2. **Module-created** (`action_groups`) -- created inside the module with configurable receivers
 
 Both use severity routing: each action group specifies which severity levels (0-4) it handles.
+
+### PagerDuty routing
+
+Pass a catalog of PagerDuty integrations via `pagerduty_config` and reference catalog entries from individual webhook receivers using `pagerduty_key`. The module substitutes the receiver `name` and `service_uri` from the catalog entry. `pagerduty_config` is marked `sensitive`, so webhook URLs do not appear in plan output.
+
+```hcl
+pagerduty_config = {
+  ops-primary = {
+    name    = "ops-primary"
+    webhook = "https://events.pagerduty.com/integration/.../enqueue"
+  }
+}
+
+action_groups = {
+  pager = {
+    short_name = "pager"
+    severities = [0, 1, 2]
+    webhook_receivers = {
+      primary = { pagerduty_key = "ops-primary" }
+    }
+  }
+}
+```
+
+## Health alerts
+
+Service Health and Resource Health activity log alerts are deployed at subscription scope. Subscription IDs are derived from `var.scopes`; one alert is created per unique subscription, so multiple scopes within the same subscription collapse to a single alert. A bare `/subscriptions/<guid>` scope is sufficient for health-alert-only deployments. Every configured action group — external and module-created — receives the notifications. Severity routing does not apply to activity log alerts.
+
+```hcl
+health_alerts = {
+  service_health = {
+    enabled   = true
+    events    = ["Incident", "Maintenance", "Security"]
+    locations = ["Global", "westeurope"]
+  }
+  resource_health = {
+    enabled = true
+    levels  = ["Critical", "Error"]
+    current = ["Degraded", "Unavailable"]
+  }
+}
+```
 
 ## Severity levels
 
@@ -81,7 +126,7 @@ Both use severity routing: each action group specifies which severity levels (0-
 | `resource_type = "azurerm_firewall"` | `alert_profile = "firewall"`                               |
 | `resource_type = "appzone"`          | `alert_profile = "appzone"`                                |
 | `scope = ["vm-name"]`                | Handled via query patterns in scopes                       |
-| `action_group_ids` (required)        | `action_group_ids` (optional) + `action_groups` (optional) |
+| `action_group_routing` (was required)    | `action_group_routing` (optional) + `action_groups` (optional) |
 
 ## Requirements
 

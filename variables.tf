@@ -4,7 +4,7 @@
 
 variable "scopes" {
   type        = list(string)
-  description = "List of Azure resource IDs to monitor. All alerts will target these scopes."
+  description = "List of Azure resource IDs to monitor. All alerts will target these scopes. Subscription-only scopes ('/subscriptions/<guid>') are also accepted — useful when only health alerts are deployed."
 
   validation {
     condition     = length(var.scopes) > 0
@@ -14,15 +14,15 @@ variable "scopes" {
   validation {
     condition = alltrue([
       for scope in var.scopes :
-      can(regex("^/subscriptions/[0-9a-f-]+/", lower(scope)))
+      can(regex("^/subscriptions/[0-9a-f-]+(/|$)", lower(scope)))
     ])
-    error_message = "Each scope must be a valid Azure resource ID starting with /subscriptions/<subscription-id>/."
+    error_message = "Each scope must be a valid Azure resource ID starting with /subscriptions/<subscription-id>."
   }
 }
 
 variable "alert_profile" {
   type        = string
-  description = "Alert profile to apply default alerts for. Must match a profile name from built-in defaults or defaults_override. Set to null to disable default alerts entirely."
+  description = "Alert profile to apply default alerts for. Must match a profile name from built-in defaults or defaults_override. Set to null to disable default alerts entirely. Combined with apply_default_rules=false and empty custom_*_alerts this makes the alerting layer fully optional — e.g. when the module is deployed only for health alerts or only for action groups."
   default     = null
 }
 
@@ -170,8 +170,9 @@ variable "action_groups" {
     })), {})
 
     webhook_receivers = optional(map(object({
-      name                    = string
-      service_uri             = string
+      name                    = optional(string)
+      service_uri             = optional(string)
+      pagerduty_key           = optional(string)
       use_common_alert_schema = optional(bool, true)
     })), {})
 
@@ -214,10 +215,20 @@ variable "action_groups" {
     condition = alltrue([
       for ag_key, ag in var.action_groups : alltrue([
         for wh_key, wh in ag.webhook_receivers :
-        can(regex("^https://", wh.service_uri))
+        (wh.pagerduty_key != null) || (wh.service_uri != null && can(regex("^https://", wh.service_uri)))
       ])
     ])
-    error_message = "All webhook_receiver service_uri values must use HTTPS. Plaintext HTTP webhook endpoints are not permitted."
+    error_message = "Each webhook_receiver must set either pagerduty_key (resolved against var.pagerduty_config) or an https:// service_uri. Plaintext HTTP webhook endpoints are not permitted."
+  }
+
+  validation {
+    condition = alltrue([
+      for ag_key, ag in var.action_groups : alltrue([
+        for wh_key, wh in ag.webhook_receivers :
+        (wh.name != null && wh.name != "") || (wh.pagerduty_key != null)
+      ])
+    ])
+    error_message = "Each webhook_receiver must have a name, unless pagerduty_key is set (in which case the name is derived from pagerduty_config)."
   }
 
   validation {
@@ -238,6 +249,112 @@ variable "action_groups" {
       ])
     ])
     error_message = "All azure_function_receiver http_trigger_url values must use HTTPS."
+  }
+}
+
+# -----------------------------------------------------------------------------
+# PagerDuty — optional webhook endpoint catalog
+# -----------------------------------------------------------------------------
+
+variable "pagerduty_config" {
+  type = map(object({
+    name    = string
+    webhook = string
+  }))
+  default     = {}
+  sensitive   = true
+  description = "PagerDuty endpoint catalog. When a webhook_receiver sets pagerduty_key, the receiver's service_uri is set to pagerduty_config[pagerduty_key].webhook and its name is set to 'PagerDuty <name>'. Marked sensitive to prevent webhook URLs from appearing in plan output."
+
+  validation {
+    condition = alltrue([
+      for k, v in var.pagerduty_config :
+      can(regex("^https://", v.webhook))
+    ])
+    error_message = "All pagerduty_config[].webhook URLs must use HTTPS."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.pagerduty_config :
+      v.name != null && v.name != ""
+    ])
+    error_message = "All pagerduty_config[].name values must be non-empty."
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Health alerts — Service Health and Resource Health activity-log alerts
+# -----------------------------------------------------------------------------
+
+variable "health_alerts" {
+  type = object({
+    service_health = optional(object({
+      enabled   = optional(bool, false)
+      name      = optional(string, "servicehealth")
+      location  = optional(string, "Global")
+      events    = optional(list(string), ["Incident", "Maintenance", "Informational", "ActionRequired", "Security"])
+      locations = optional(list(string), ["Global"])
+      services  = optional(list(string))
+      statuses  = optional(list(string))
+    }), {})
+    resource_health = optional(object({
+      enabled  = optional(bool, false)
+      name     = optional(string, "resourcehealth")
+      location = optional(string, "Global")
+      levels   = optional(list(string), ["Critical", "Error", "Warning"])
+      statuses = optional(list(string))
+      current  = optional(list(string))
+      previous = optional(list(string))
+      reason   = optional(list(string))
+    }), {})
+  })
+  default     = {}
+  description = "Service Health and Resource Health activity log alerts. One alert is created per unique subscription extracted from var.scopes. All action groups (external and module-created) receive notifications; severity routing does not apply to activity log alerts. Set service_health.enabled or resource_health.enabled to true to deploy. Field mapping: service_health.events/locations/services → criteria.service_health block; resource_health.levels → criteria.levels (activity log severity filter); resource_health.current/previous/reason → criteria.resource_health block."
+
+  validation {
+    condition = alltrue([
+      for e in(var.health_alerts.service_health.events == null ? [] : var.health_alerts.service_health.events) :
+      contains(["Incident", "Maintenance", "Informational", "ActionRequired", "Security"], e)
+    ])
+    error_message = "service_health.events must be a subset of: Incident, Maintenance, Informational, ActionRequired, Security."
+  }
+
+  validation {
+    condition = alltrue([
+      for l in(var.health_alerts.resource_health.levels == null ? [] : var.health_alerts.resource_health.levels) :
+      contains(["Verbose", "Informational", "Warning", "Error", "Critical"], l)
+    ])
+    error_message = "resource_health.levels must be a subset of: Verbose, Informational, Warning, Error, Critical (activity log severity filter)."
+  }
+
+  validation {
+    condition = alltrue([
+      for s in concat(
+        var.health_alerts.resource_health.current == null ? [] : var.health_alerts.resource_health.current,
+        var.health_alerts.resource_health.previous == null ? [] : var.health_alerts.resource_health.previous,
+      ) :
+      contains(["Available", "Degraded", "Unavailable", "Unknown"], s)
+    ])
+    error_message = "resource_health.current / resource_health.previous must be a subset of: Available, Degraded, Unavailable, Unknown."
+  }
+
+  validation {
+    condition = alltrue([
+      for r in(var.health_alerts.resource_health.reason == null ? [] : var.health_alerts.resource_health.reason) :
+      contains(["PlatformInitiated", "UserInitiated", "Unknown"], r)
+    ])
+    error_message = "resource_health.reason must be a subset of: PlatformInitiated, UserInitiated, Unknown."
+  }
+
+  validation {
+    condition = alltrue([
+      for s in concat(
+        var.health_alerts.service_health.statuses == null ? [] : var.health_alerts.service_health.statuses,
+        var.health_alerts.resource_health.statuses == null ? [] : var.health_alerts.resource_health.statuses,
+      ) :
+      contains(["Active", "In Progress", "Resolved", "Updated"], s)
+    ])
+    error_message = "*.statuses must be a subset of activity log event statuses: Active, In Progress, Resolved, Updated."
   }
 }
 
@@ -285,7 +402,7 @@ variable "tags" {
 
 variable "enable_telemetry" {
   type        = bool
-  default     = true
+  default     = false
   nullable    = false
   description = <<-DESCRIPTION
     Controls whether telemetry is enabled for the module.

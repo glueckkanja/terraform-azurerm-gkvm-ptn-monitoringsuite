@@ -7,6 +7,45 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ---
 
+## [0.2.0] - 2026-04-24
+
+### Added
+
+- **Health alerts** — new `health_alerts` variable deploys `azurerm_monitor_activity_log_alert`
+  resources for Azure Service Health and Resource Health, one per unique subscription extracted
+  from `var.scopes`. Activity log alerts notify every configured action group; severity routing
+  does not apply. Supersedes the standalone `af/monitoring/health_alert` module.
+- **Optional alerting** — alerting is now fully optional. Setting `alert_profile = null`,
+  `apply_default_rules = false`, and passing no `custom_*_alerts` lets the module be deployed
+  solely for action groups and/or health alerts.
+- **PagerDuty integration** — new `pagerduty_config` variable accepts a catalog of
+  `{name, webhook}` entries. Webhook receivers can reference an entry via `pagerduty_key`;
+  the module substitutes the receiver name (`"PagerDuty <name>"`) and `service_uri` at plan
+  time. The variable is marked `sensitive` so webhook URLs never appear in plan diffs.
+- `service_health_alerts` and `resource_health_alerts` outputs.
+- `health_alerts.service_health.statuses` and `health_alerts.resource_health.statuses` —
+  optional activity-log event status filter (`Active`, `In Progress`, `Resolved`, `Updated`).
+  Lets callers restrict notifications to, for example, only newly active incidents.
+
+### Changed
+
+- `scopes` regex validation relaxed to accept subscription-only IDs (`/subscriptions/<guid>`)
+  in addition to full resource IDs. Enables health-alert-only deployments.
+- `action_groups[].webhook_receivers[]` gained optional `pagerduty_key`. The `service_uri`
+  validation is now null-safe and enforces that each webhook receiver sets either `pagerduty_key`
+  or an `https://` `service_uri`.
+- A `lifecycle.precondition` on `azurerm_monitor_action_group` fails the plan when a
+  `pagerduty_key` references a missing entry in `pagerduty_config`.
+
+### Migration — replacing the old `af/monitoring/health_alert` module
+
+Remove the old module block from your root configuration. OpenTofu will plan the destruction
+of the old activity log alerts (and any resource group managed by it) and the creation of
+the new alerts under this module. Activity log alerts operate on the Azure event stream and
+hold no stored state — recreation causes no notification gap and no data loss.
+
+---
+
 ## [0.1.0] — 2026-04-22
 
 ### Overview

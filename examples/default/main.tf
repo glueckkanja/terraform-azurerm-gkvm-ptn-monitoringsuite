@@ -24,7 +24,7 @@ module "firewall_monitoring" {
   defaults_override = data.gkvm_monitoring_profiles.this.profiles
 
   # External action group with severity routing
-  action_group_ids = [
+  action_group_routing = [
     {
       action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-monitoring/providers/Microsoft.Insights/actionGroups/ag-ops-critical"
       severities      = [0, 1]
@@ -52,6 +52,69 @@ module "firewall_monitoring" {
 # ---------------------------------------------------------------------------
 # Example 2: Appzone monitoring (provider profile — not in built-in defaults)
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Example 3: Health alerts only — no metric/log alerts, PagerDuty routing
+#
+# Demonstrates the module deployed purely for Service Health + Resource Health
+# monitoring at subscription scope, with notifications routed to PagerDuty
+# via the pagerduty_config catalog.
+# ---------------------------------------------------------------------------
+
+module "subscription_health" {
+  source = "../.."
+
+  # Scope used solely to derive the subscription ID for health alerts.
+  scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
+
+  # Alerting disabled — this deployment serves only health alerts.
+  alert_profile       = null
+  apply_default_rules = false
+
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  health_alerts = {
+    service_health = {
+      enabled   = true
+      events    = ["Incident", "Maintenance", "Security"]
+      locations = ["Global", "westeurope"]
+    }
+    resource_health = {
+      enabled = true
+      levels  = ["Critical", "Error"]
+      current = ["Degraded", "Unavailable"]
+    }
+  }
+
+  # PagerDuty catalog — webhook URLs treated as secrets, sourced from a
+  # sensitive variable in the caller.
+  pagerduty_config = var.pagerduty_config
+
+  # Route notifications through a module-managed action group that uses
+  # PagerDuty via pagerduty_key.
+  action_groups = {
+    pager = {
+      short_name = "pager"
+      severities = [0, 1, 2, 3, 4]
+      webhook_receivers = {
+        primary = {
+          pagerduty_key = "ops-primary"
+        }
+      }
+    }
+  }
+
+  naming_configuration = data.standesamt_config.this.configuration
+  convention           = "default"
+  environment          = var.environment
+  name_prefixes        = ["contoso"]
+
+  tags = {
+    environment = var.environment
+    managed_by  = "opentofu"
+  }
+}
 
 module "appzone_monitoring" {
   source = "../.."

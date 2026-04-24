@@ -34,3 +34,13 @@ variable "app_scope" {
   description = "Full resource ID of the application scope (e.g., /subscriptions/00000000-.../resourceGroups/rg-app)"
   default     = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-app"
 }
+
+variable "pagerduty_config" {
+  type = map(object({
+    name    = string
+    webhook = string
+  }))
+  default     = {}
+  sensitive   = true
+  description = "PagerDuty webhook catalog. Keys referenced by action_groups[].webhook_receivers[].pagerduty_key."
+}

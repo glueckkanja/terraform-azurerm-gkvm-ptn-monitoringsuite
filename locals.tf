@@ -1,6 +1,14 @@
 locals {
   # Primary scope for query formatting (first entry in scopes list)
   primary_scope = var.scopes[0]
+
+  # Unique subscription-scope IDs extracted from var.scopes. Used as for_each
+  # key for health alerts so two scopes in the same subscription collapse to
+  # one alert per category.
+  health_alert_subscription_ids = toset([
+    for s in var.scopes :
+    regex("^/subscriptions/[0-9a-f-]+", lower(s))
+  ])
 }
 
 # ---------------------------------------------------------------------------
@@ -16,6 +24,30 @@ locals {
   ]
 
   all_action_groups = concat(var.action_group_routing, local.created_action_groups)
+
+  # Flat list of every action group ID, severity ignored — activity log alerts
+  # (health alerts) do not carry a severity dimension so they notify all groups.
+  health_alert_action_group_ids = distinct([for ag in local.all_action_groups : ag.action_group_id])
+}
+
+# ---------------------------------------------------------------------------
+# Webhook receiver resolution — merge PagerDuty catalog lookups
+# ---------------------------------------------------------------------------
+
+locals {
+  # For each webhook receiver: if pagerduty_key is set, substitute name and
+  # service_uri from var.pagerduty_config. The precondition in
+  # main.action_groups.tf guarantees every referenced key exists, so direct
+  # map access here is safe.
+  resolved_webhook_receivers = {
+    for ag_key, ag in var.action_groups : ag_key => {
+      for wh_key, wh in ag.webhook_receivers : wh_key => {
+        name                    = wh.pagerduty_key != null ? format("PagerDuty %s", var.pagerduty_config[wh.pagerduty_key].name) : wh.name
+        service_uri             = wh.pagerduty_key != null ? var.pagerduty_config[wh.pagerduty_key].webhook : wh.service_uri
+        use_common_alert_schema = wh.use_common_alert_schema
+      }
+    }
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -131,6 +163,32 @@ locals {
       name_precedence = var.name_precedence
       hash_length     = var.hash_length
     }, key)
+  }
+
+  # Health alert names — one per subscription, suffixed with the subscription
+  # GUID to avoid collisions when scopes span multiple subscriptions.
+  service_health_alert_names = { for sub_id in local.health_alert_subscription_ids : sub_id =>
+    provider::standesamt::name(var.naming_configuration, "azure_monitor_activity_log_alert", {
+      convention      = var.convention
+      location        = var.location
+      environment     = var.environment
+      prefixes        = var.name_prefixes
+      suffixes        = concat(var.name_suffixes, [split("/", sub_id)[2]])
+      name_precedence = var.name_precedence
+      hash_length     = var.hash_length
+    }, var.health_alerts.service_health.name)
+  }
+
+  resource_health_alert_names = { for sub_id in local.health_alert_subscription_ids : sub_id =>
+    provider::standesamt::name(var.naming_configuration, "azure_monitor_activity_log_alert", {
+      convention      = var.convention
+      location        = var.location
+      environment     = var.environment
+      prefixes        = var.name_prefixes
+      suffixes        = concat(var.name_suffixes, [split("/", sub_id)[2]])
+      name_precedence = var.name_precedence
+      hash_length     = var.hash_length
+    }, var.health_alerts.resource_health.name)
   }
 }
 
