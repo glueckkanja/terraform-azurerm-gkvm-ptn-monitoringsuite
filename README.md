@@ -102,7 +102,6 @@ health_alerts = {
   }
   resource_health = {
     enabled = true
-    levels  = ["Critical", "Error"]
     current = ["Degraded", "Unavailable"]
   }
 }
