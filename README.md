@@ -107,6 +107,44 @@ health_alerts = {
 }
 ```
 
+## Managed identity for log alerts
+
+By default, log alert v2 rules query the bound Log Analytics Workspace using Azure Monitor's
+own access — no managed identity is required for standard single-workspace queries.
+
+A managed identity is needed when the KQL query reaches outside the LAW, for example:
+
+- `adx("https://...")` — querying a Fabric Eventhouse or ADX cluster
+- `workspace("other-ws")` — cross-workspace queries to a LAW in another resource group or subscription
+- `arg("")` — querying Azure Resource Graph
+
+In these cases, Azure Monitor has no implicit access to the external resource and the alert
+must authenticate as an identity that has been granted access there.
+
+Set `identity.enabled = true` on any `custom_log_alerts` entry and specify the identity type:
+
+```hcl
+custom_log_alerts = {
+  fabric_query_alert = {
+    name     = "fabric-kql-alert"
+    severity = 2
+    query    = "adx('https://...eventhouse.../v1', 'mydb') | TableName | ..."
+    identity = {
+      enabled      = true
+      type         = "UserAssigned"
+      identity_ids = [azurerm_user_assigned_identity.fabric.id]
+    }
+  }
+}
+```
+
+Supported values for `type`: `"SystemAssigned"`, `"UserAssigned"`, `"SystemAssigned, UserAssigned"`.
+
+> **Prerequisite:** This module does not create role assignments for user-assigned managed
+> identities. Grant the UAMI the permissions required by its queries on the target resources
+> before attaching it — for example Viewer on the Eventhouse database for `adx()` queries.
+> Role assignments for system-assigned identities are still managed automatically by this module.
+
 ## Severity levels
 
 | Level | Name          | Typical use                           |

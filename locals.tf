@@ -118,7 +118,7 @@ locals {
 
 locals {
   log_alert_names_v2 = { for key, config in local.merged_log_alerts_v2 : key =>
-    provider::standesamt::name(var.naming_configuration, "azurerm_monitor_scheduled_query_rules_alert_v2", {
+    provider::standesamt::name(var.naming_configuration, "azurerm_monitor_scheduled_query_rules_alert", {
       convention      = var.convention
       location        = var.location
       environment     = var.environment

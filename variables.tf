@@ -100,8 +100,9 @@ variable "custom_log_alerts" {
     }))
 
     identity = optional(object({
-      enabled = optional(bool, false)
-      type    = optional(string, "SystemAssigned")
+      enabled      = optional(bool, false)
+      type         = optional(string, "SystemAssigned")
+      identity_ids = optional(list(string), [])
       role_assignments = optional(list(object({
         role_definition_name = string
         scope                = string
@@ -109,7 +110,7 @@ variable "custom_log_alerts" {
     }))
   }))
   default     = {}
-  description = "Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes)."
+  description = "Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). Set identity.enabled = true to run the query as a managed identity — required for cross-resource queries such as adx() (Fabric Eventhouse), workspace() across subscriptions, or arg(). When using type = \"UserAssigned\" or \"SystemAssigned, UserAssigned\", set identity.identity_ids to the UAMI resource IDs. The UAMI must already hold the required permissions on the queried external resources — this module does not create role assignments for user-assigned identities."
 }
 
 variable "custom_metric_alerts" {

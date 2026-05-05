@@ -75,7 +75,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
     for_each = try(each.value.identity.enable, false) || try(each.value.identity.enabled, false) ? [1] : []
 
     content {
-      type = try(each.value.identity.type, "SystemAssigned")
+      type         = try(each.value.identity.type, "SystemAssigned")
+      identity_ids = length(try(each.value.identity.identity_ids, [])) > 0 ? each.value.identity.identity_ids : null
     }
   }
 
