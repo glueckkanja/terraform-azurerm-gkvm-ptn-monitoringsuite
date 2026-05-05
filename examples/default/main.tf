@@ -82,7 +82,6 @@ module "subscription_health" {
     }
     resource_health = {
       enabled = true
-      levels  = ["Critical", "Error"]
       current = ["Degraded", "Unavailable"]
     }
   }

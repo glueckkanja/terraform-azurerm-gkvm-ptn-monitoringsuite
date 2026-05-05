@@ -54,7 +54,6 @@ resource "azurerm_monitor_activity_log_alert" "resource_health" {
 
   criteria {
     category = "ResourceHealth"
-    levels   = var.health_alerts.resource_health.levels
     statuses = var.health_alerts.resource_health.statuses
 
     dynamic "resource_health" {
