@@ -305,7 +305,6 @@ variable "health_alerts" {
       enabled  = optional(bool, false)
       name     = optional(string, "resourcehealth")
       location = optional(string, "Global")
-      levels   = optional(list(string), ["Critical", "Error", "Warning"])
       statuses = optional(list(string))
       current  = optional(list(string))
       previous = optional(list(string))
@@ -313,7 +312,7 @@ variable "health_alerts" {
     }), {})
   })
   default     = {}
-  description = "Service Health and Resource Health activity log alerts. One alert is created per unique subscription extracted from var.scopes. All action groups (external and module-created) receive notifications; severity routing does not apply to activity log alerts. Set service_health.enabled or resource_health.enabled to true to deploy. Field mapping: service_health.events/locations/services → criteria.service_health block; resource_health.levels → criteria.levels (activity log severity filter); resource_health.current/previous/reason → criteria.resource_health block."
+  description = "Service Health and Resource Health activity log alerts. One alert is created per unique subscription extracted from var.scopes. All action groups (external and module-created) receive notifications; severity routing does not apply to activity log alerts. Set service_health.enabled or resource_health.enabled to true to deploy. Field mapping: service_health.events/locations/services → criteria.service_health block; resource_health.current/previous/reason → criteria.resource_health block."
 
   validation {
     condition = alltrue([
@@ -321,14 +320,6 @@ variable "health_alerts" {
       contains(["Incident", "Maintenance", "Informational", "ActionRequired", "Security"], e)
     ])
     error_message = "service_health.events must be a subset of: Incident, Maintenance, Informational, ActionRequired, Security."
-  }
-
-  validation {
-    condition = alltrue([
-      for l in(var.health_alerts.resource_health.levels == null ? [] : var.health_alerts.resource_health.levels) :
-      contains(["Verbose", "Informational", "Warning", "Error", "Critical"], l)
-    ])
-    error_message = "resource_health.levels must be a subset of: Verbose, Informational, Warning, Error, Critical (activity log severity filter)."
   }
 
   validation {
