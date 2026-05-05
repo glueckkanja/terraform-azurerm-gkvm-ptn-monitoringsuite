@@ -93,7 +93,7 @@ resource "azurerm_monitor_action_group" "this" {
     precondition {
       condition = alltrue([
         for wh_key, wh in each.value.webhook_receivers :
-        wh.pagerduty_key == null || contains(nonsensitive(keys(var.pagerduty_config)), wh.pagerduty_key)
+        wh.pagerduty_key == null ? true : contains(nonsensitive(keys(var.pagerduty_config)), wh.pagerduty_key)
       ])
       error_message = format(
         "action_groups[%q].webhook_receivers contains a pagerduty_key (%s) not found in var.pagerduty_config. Add the matching entry to pagerduty_config or correct the key name.",
@@ -101,7 +101,7 @@ resource "azurerm_monitor_action_group" "this" {
         join(", ", [
           for wh_key, wh in each.value.webhook_receivers :
           format("%q (receiver %q)", wh.pagerduty_key, wh_key)
-          if wh.pagerduty_key != null && !contains(nonsensitive(keys(var.pagerduty_config)), wh.pagerduty_key)
+          if wh.pagerduty_key != null ? !contains(nonsensitive(keys(var.pagerduty_config)), wh.pagerduty_key) : false
         ])
       )
     }
