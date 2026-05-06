@@ -13,7 +13,7 @@
 #   log_alerts:
 #     <rule_key>:
 #       name, description, severity, time_window, frequency
-#       query_template: KQL with ${primary_scope}, ${remote_ip} interpolation
+#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth}, ${eventhouse_uri} interpolation
 #       trigger: { operator, threshold, metric_trigger_type? }
 #       time_aggregation_method, metric_measure_column?, dimensions?, identity?
 # ---------------------------------------------------------------------------
@@ -35,11 +35,12 @@ locals {
       log_alerts = {
         for rule_key, rule in try(data.log_alerts, {}) : rule_key => merge(rule, {
           query_template = try(
-            replace(replace(replace(
+            replace(replace(replace(replace(
               rule.query_template,
               "$${primary_scope}", local.primary_scope),
               "$${remote_ip}", var.remote_ip),
-            "$${bandwidth}", tostring(var.bandwidth)),
+              "$${bandwidth}", tostring(var.bandwidth)),
+            "$${eventhouse_uri}", var.eventhouse_uri),
             try(rule.query_template, "")
           )
         })
@@ -90,6 +91,14 @@ locals {
         trigger = merge(try(rule.trigger, {}), {
           threshold = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "threshold", try(rule.trigger.threshold, 0))
         })
+
+        # Inject UAMI into alerts that have no identity block in the YAML.
+        # Alerts that already declare an identity (e.g. SystemAssigned in appzone) are left untouched.
+        identity = length(var.default_log_alert_identity_ids) > 0 && try(rule.identity, null) == null ? {
+          enabled      = true
+          type         = "UserAssigned"
+          identity_ids = var.default_log_alert_identity_ids
+        } : try(rule.identity, null)
       })
     }
   }

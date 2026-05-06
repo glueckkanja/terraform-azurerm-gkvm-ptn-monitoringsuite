@@ -382,6 +382,18 @@ variable "bandwidth" {
   description = "Bandwidth threshold in bytes for VPN/ExpressRoute gateway monitoring."
 }
 
+variable "eventhouse_uri" {
+  type        = string
+  default     = ""
+  description = "Fabric Eventhouse cluster URI substituted into adx() query templates via the $${eventhouse_uri} placeholder. Required when using an alert profile that queries a Fabric Eventhouse."
+}
+
+variable "default_log_alert_identity_ids" {
+  type        = list(string)
+  default     = []
+  description = "UAMI resource IDs applied to all default log alerts that have no identity block in their profile definition. Use this to run cross-resource queries (e.g. adx() to a Fabric Eventhouse) as a specific identity. Has no effect on alerts that already declare an identity in the YAML, on custom_log_alerts, or when left empty."
+}
+
 # -----------------------------------------------------------------------------
 # Standard GKVM variables
 # -----------------------------------------------------------------------------

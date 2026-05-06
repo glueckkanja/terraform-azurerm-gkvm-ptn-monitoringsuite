@@ -214,7 +214,9 @@ locals {
           alert_key            = query
         }
       ] : []
-    ) if(try(config.identity.enabled, false) == true || try(config.identity.enable, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
+    ) if(try(config.identity.enabled, false) == true || try(config.identity.enable, false) == true)
+    && !can(regex("UserAssigned", try(config.identity.type, "SystemAssigned")))
+    && contains(keys(local.merged_log_alerts_v2), query)
   ])
 
   # Default log alert role assignments (v2 only)
@@ -241,7 +243,9 @@ locals {
           alert_key            = query
         }
       ] : []
-    ) if(try(config.identity.enable, false) == true || try(config.identity.enabled, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
+    ) if(try(config.identity.enable, false) == true || try(config.identity.enabled, false) == true)
+    && !can(regex("UserAssigned", try(config.identity.type, "SystemAssigned")))
+    && contains(keys(local.merged_log_alerts_v2), query)
   ])
 
   all_log_alert_role_assignments = concat(

@@ -96,6 +96,54 @@ run "no_identity_block_creates_no_identity" {
   }
 }
 
+run "default_log_alert_identity_ids_injected" {
+  command = plan
+
+  variables {
+    naming_configuration = run.setup.naming_configuration
+
+    alert_profile       = "fabric"
+    apply_default_rules = true
+
+    defaults_override = {
+      "fabric" = jsonencode({
+        metric_alerts = {}
+        log_alerts = {
+          fabric_eh_query = {
+            name           = "fabric-eventhouse-alert"
+            description    = "KQL via adx()"
+            severity       = 2
+            time_window    = "PT15M"
+            frequency      = "PT5M"
+            query_template = "AzureActivity | limit 10"
+            trigger = {
+              operator  = "GreaterThan"
+              threshold = 0
+            }
+          }
+        }
+      })
+    }
+
+    default_log_alert_identity_ids = [
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uami-fabric"
+    ]
+  }
+
+  assert {
+    condition     = azurerm_monitor_scheduled_query_rules_alert_v2.this["fabric_eh_query"].identity[0].type == "UserAssigned"
+    error_message = "Default alert should have UserAssigned identity injected via default_log_alert_identity_ids."
+  }
+
+  assert {
+    condition = contains(
+      azurerm_monitor_scheduled_query_rules_alert_v2.this["fabric_eh_query"].identity[0].identity_ids,
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uami-fabric"
+    )
+    error_message = "Default alert identity_ids should contain the injected UAMI resource ID."
+  }
+}
+
 run "system_assigned_identity_unchanged" {
   command = plan
 
