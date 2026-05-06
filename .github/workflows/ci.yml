@@ -10,12 +10,6 @@ on:
 permissions:
   contents: read
 
-# Cancel any in-progress run for the same ref so a fast-follow push does not
-# queue behind a run it will supersede.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   # A single shared plugin cache dir reduces provider download time across jobs.
   # Each job still seeds/restores its own cache entry keyed on the lock file(s)
