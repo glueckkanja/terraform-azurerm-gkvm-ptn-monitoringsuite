@@ -12,6 +12,7 @@ This module provides a generalized, scope-based Azure monitoring alerting soluti
 - **Optional alerting** -- deploy the module solely for action groups and/or health alerts by setting `alert_profile = null`, `apply_default_rules = false`, and passing no `custom_*_alerts`
 - **Hybrid action groups** -- pass external action groups AND/OR create new ones inside the module
 - **Severity-based routing** -- action groups only receive alerts matching their configured severity levels
+- **Per-alert action group override** -- set `action_group_ids` on any custom alert or default rule override to bypass severity routing and notify only the specified groups
 - **Default alert library** -- 13 built-in profiles with opt-in (appzone) or opt-out (all others) selection
 - **v1 + v2 log alerts** -- v2 preferred; v1 retained for metric trigger patterns
 - **Health alerts** -- Service Health and Resource Health activity log alerts at subscription scope, derived from `scopes`
@@ -65,6 +66,36 @@ The module supports two sources of action groups that are merged internally:
 2. **Module-created** (`action_groups`) -- created inside the module with configurable receivers
 
 Both use severity routing: each action group specifies which severity levels (0-4) it handles.
+
+### Per-alert action group override
+
+When severity routing is too coarse — for example, a specific alert should notify only the customer and not the MSP — set `action_group_ids` directly on the alert. This bypasses severity routing for that alert and routes notifications exclusively to the listed action group resource IDs. All other alerts continue to use the global severity routing.
+
+```hcl
+# Customer group is still defined globally
+action_group_routing = [
+  { action_group_id = azurerm_monitor_action_group.msp.id,      severities = [0, 1, 2, 3, 4] },
+  { action_group_id = azurerm_monitor_action_group.customer.id, severities = [2, 3, 4] }
+]
+
+# This specific alert goes only to the customer, regardless of severity
+custom_metric_alerts = {
+  customer_capacity = {
+    name             = "Customer Capacity Alert"
+    severity         = 2
+    metric_namespace = "Microsoft.Network/azureFirewalls"
+    alert_criterias  = [{ metric_name = "Throughput", operator = "GreaterThan", aggregation = "Average", threshold = 1000 }]
+    action_group_ids = [azurerm_monitor_action_group.customer.id]
+  }
+}
+
+# Same override works for default alert rules
+default_alert_rules_configuration = {
+  fw_health = {
+    action_group_ids = [azurerm_monitor_action_group.customer.id]
+  }
+}
+```
 
 ### PagerDuty routing
 
@@ -180,9 +211,9 @@ health_alerts = {
 | <a name="input_apply_default_rules"></a> [apply\_default\_rules](#input\_apply\_default\_rules) | Enable default alert rules for the selected alert\_profile. Has no effect if alert\_profile is null. | `bool` | `true` | no |
 | <a name="input_bandwidth"></a> [bandwidth](#input\_bandwidth) | Bandwidth threshold in bytes for VPN/ExpressRoute gateway monitoring. | `number` | `625000000` | no |
 | <a name="input_convention"></a> [convention](#input\_convention) | Naming convention. Use 'passthrough' to skip convention and pass resource name through directly. | `string` | n/a | yes |
-| <a name="input_custom_log_alerts"></a> [custom\_log\_alerts](#input\_custom\_log\_alerts) | Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). | <pre>map(object({<br/>    name                              = string<br/>    description                       = optional(string, "")<br/>    severity                          = number<br/>    time_window                       = optional(string, "PT15M")<br/>    frequency                         = optional(string, "PT5M")<br/>    query                             = string<br/>    mute_actions_after_alert_duration = optional(string)<br/>    auto_mitigation_enabled           = optional(bool, true)<br/>    time_aggregation_method           = optional(string, "Count")<br/>    metric_measure_column             = optional(string)<br/>    resource_id_column                = optional(string)<br/><br/>    dimensions = optional(list(object({<br/>      name     = string<br/>      operator = optional(string, "Include")<br/>      values   = list(string)<br/>    })), [])<br/><br/>    failing_periods = optional(object({<br/>      minimum_failing_periods_to_trigger_alert = optional(number, 1)<br/>      number_of_evaluation_periods             = optional(number, 1)<br/>    }))<br/><br/>    trigger = optional(object({<br/>      operator  = string<br/>      threshold = number<br/><br/>      metric_trigger = optional(object({<br/>        operator            = string<br/>        threshold           = number<br/>        metric_trigger_type = string<br/>        metric_column       = string<br/>      }))<br/>    }))<br/><br/>    identity = optional(object({<br/>      enabled = optional(bool, false)<br/>      type    = optional(string, "SystemAssigned")<br/>      role_assignments = optional(list(object({<br/>        role_definition_name = string<br/>        scope                = string<br/>      })), [])<br/>    }))<br/>  }))</pre> | `{}` | no |
-| <a name="input_custom_metric_alerts"></a> [custom\_metric\_alerts](#input\_custom\_metric\_alerts) | Custom metric alerts. Keys are used as resource identifiers. | <pre>map(object({<br/>    name                 = string<br/>    description          = optional(string, "")<br/>    severity             = number<br/>    window_size          = optional(string, "PT15M")<br/>    frequency            = optional(string, "PT5M")<br/>    metric_namespace     = string<br/>    target_resource_type = optional(string)<br/>    enabled              = optional(bool, true)<br/><br/>    alert_criterias = list(object({<br/>      metric_name = string<br/>      operator    = string<br/>      aggregation = string<br/>      threshold   = number<br/><br/>      dimensions = optional(list(object({<br/>        name     = string<br/>        operator = optional(string, "Include")<br/>        values   = list(string)<br/>      })), [])<br/>    }))<br/>  }))</pre> | `{}` | no |
-| <a name="input_default_alert_rules_configuration"></a> [default\_alert\_rules\_configuration](#input\_default\_alert\_rules\_configuration) | Override individual default alert rules. Keys match default rule names. Supports: disable\_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window\_size, frequency, name, time\_aggregation\_method, metric\_measure\_column, mute\_actions\_after\_alert\_duration, auto\_mitigation\_enabled. | `any` | `{}` | no |
+| <a name="input_custom_log_alerts"></a> [custom\_log\_alerts](#input\_custom\_log\_alerts) | Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). Set action\_group\_ids to bypass severity-based routing and notify only the specified action groups. | <pre>map(object({<br/>    name                              = string<br/>    description                       = optional(string, "")<br/>    severity                          = number<br/>    time_window                       = optional(string, "PT15M")<br/>    frequency                         = optional(string, "PT5M")<br/>    query                             = string<br/>    mute_actions_after_alert_duration = optional(string)<br/>    auto_mitigation_enabled           = optional(bool, true)<br/>    time_aggregation_method           = optional(string, "Count")<br/>    metric_measure_column             = optional(string)<br/>    resource_id_column                = optional(string)<br/><br/>    dimensions = optional(list(object({<br/>      name     = string<br/>      operator = optional(string, "Include")<br/>      values   = list(string)<br/>    })), [])<br/><br/>    failing_periods = optional(object({<br/>      minimum_failing_periods_to_trigger_alert = optional(number, 1)<br/>      number_of_evaluation_periods             = optional(number, 1)<br/>    }))<br/><br/>    trigger = optional(object({<br/>      operator  = string<br/>      threshold = number<br/><br/>      metric_trigger = optional(object({<br/>        operator            = string<br/>        threshold           = number<br/>        metric_trigger_type = string<br/>        metric_column       = string<br/>      }))<br/>    }))<br/><br/>    identity = optional(object({<br/>      enabled = optional(bool, false)<br/>      type    = optional(string, "SystemAssigned")<br/>      role_assignments = optional(list(object({<br/>        role_definition_name = string<br/>        scope                = string<br/>      })), [])<br/>    }))<br/><br/>    action_group_ids = optional(list(string))<br/>  }))</pre> | `{}` | no |
+| <a name="input_custom_metric_alerts"></a> [custom\_metric\_alerts](#input\_custom\_metric\_alerts) | Custom metric alerts. Keys are used as resource identifiers. Set action\_group\_ids to bypass severity-based routing and notify only the specified action groups. | <pre>map(object({<br/>    name                 = string<br/>    description          = optional(string, "")<br/>    severity             = number<br/>    window_size          = optional(string, "PT15M")<br/>    frequency            = optional(string, "PT5M")<br/>    metric_namespace     = string<br/>    target_resource_type = optional(string)<br/>    enabled              = optional(bool, true)<br/><br/>    alert_criterias = list(object({<br/>      metric_name = string<br/>      operator    = string<br/>      aggregation = string<br/>      threshold   = number<br/><br/>      dimensions = optional(list(object({<br/>        name     = string<br/>        operator = optional(string, "Include")<br/>        values   = list(string)<br/>      })), [])<br/>    }))<br/><br/>    action_group_ids = optional(list(string))<br/>  }))</pre> | `{}` | no |
+| <a name="input_default_alert_rules_configuration"></a> [default\_alert\_rules\_configuration](#input\_default\_alert\_rules\_configuration) | Override individual default alert rules. Keys match default rule names. Supports: disable\_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window\_size, frequency, name, time\_aggregation\_method, metric\_measure\_column, mute\_actions\_after\_alert\_duration, auto\_mitigation\_enabled, action\_group\_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule). | `any` | `{}` | no |
 | <a name="input_defaults_override"></a> [defaults\_override](#input\_defaults\_override) | Map of profile\_name → JSON string from the gkvm provider data source (gkvm\_monitoring\_profiles). This is the sole source of default alert profiles. Each JSON string must contain {metric\_alerts: {...}, log\_alerts: {...}}. | `map(string)` | `{}` | no |
 | <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry) | Controls whether telemetry is enabled for the module.<br/>For more information see <https://aka.ms/avm/telemetryinfo>.<br/>If set to false, no telemetry will be collected. | `bool` | `false` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment name used in resource naming (e.g., prod, dev, test). | `string` | n/a | yes |
