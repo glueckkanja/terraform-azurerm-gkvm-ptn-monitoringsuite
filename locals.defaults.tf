@@ -94,11 +94,16 @@ locals {
 
         # Inject UAMI into alerts that have no identity block in the YAML.
         # Alerts that already declare an identity (e.g. SystemAssigned in appzone) are left untouched.
-        identity = length(var.default_log_alert_identity_ids) > 0 && try(rule.identity, null) == null ? {
-          enabled      = true
-          type         = "UserAssigned"
-          identity_ids = var.default_log_alert_identity_ids
-        } : try(rule.identity, null)
+        # Both object branches must share the same schema so OpenTofu can unify types across for-iterations.
+        identity = try(rule.identity, null) != null ? {
+          enabled      = try(rule.identity.enabled, true)
+          type         = rule.identity.type
+          identity_ids = try(rule.identity.identity_ids, null)
+          } : (length(var.default_log_alert_identity_ids) > 0 ? {
+            enabled      = true
+            type         = "UserAssigned"
+            identity_ids = var.default_log_alert_identity_ids
+        } : null)
       })
     }
   }
