@@ -106,23 +106,7 @@ run "default_log_alert_identity_ids_injected" {
     apply_default_rules = true
 
     defaults_override = {
-      "fabric" = jsonencode({
-        metric_alerts = {}
-        log_alerts = {
-          fabric_eh_query = {
-            name           = "fabric-eventhouse-alert"
-            description    = "KQL via adx()"
-            severity       = 2
-            time_window    = "PT15M"
-            frequency      = "PT5M"
-            query_template = "AzureActivity | limit 10"
-            trigger = {
-              operator  = "GreaterThan"
-              threshold = 0
-            }
-          }
-        }
-      })
+      "fabric" = "{\"metric_alerts\":{},\"log_alerts\":{\"fabric_eh_query\":{\"name\":\"fabric-eventhouse-alert\",\"description\":\"KQL via adx()\",\"severity\":2,\"time_window\":\"PT15M\",\"frequency\":\"PT5M\",\"query_template\":\"AzureActivity | limit 10\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}}}}"
     }
 
     default_log_alert_identity_ids = [
