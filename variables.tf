@@ -55,7 +55,7 @@ variable "apply_default_rules" {
 variable "default_alert_rules_configuration" {
   type        = any
   default     = {}
-  description = "Override individual default alert rules. Keys match default rule names. Supports: disable_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled."
+  description = "Override individual default alert rules. Keys match default rule names. Supports: disable_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled, action_group_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule)."
 }
 
 # -----------------------------------------------------------------------------
@@ -108,9 +108,11 @@ variable "custom_log_alerts" {
         scope                = string
       })), [])
     }))
+
+    action_group_ids = optional(list(string))
   }))
   default     = {}
-  description = "Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). Set identity.enabled = true to run the query as a managed identity — required for cross-resource queries such as adx() (Fabric Eventhouse), workspace() across subscriptions, or arg(). When using type = \"UserAssigned\" or \"SystemAssigned, UserAssigned\", set identity.identity_ids to the UAMI resource IDs. The UAMI must already hold the required permissions on the queried external resources — this module does not create role assignments for user-assigned identities."
+  description = "Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). Set action_group_ids to bypass severity-based routing and notify only the specified action groups. Set identity.enabled = true to run the query as a managed identity — required for cross-resource queries such as adx() (Fabric Eventhouse), workspace() across subscriptions, or arg(). When using type = \"UserAssigned\" or \"SystemAssigned, UserAssigned\", set identity.identity_ids to the UAMI resource IDs. The UAMI must already hold the required permissions on the queried external resources — this module does not create role assignments for user-assigned identities."
 }
 
 variable "custom_metric_alerts" {
@@ -136,9 +138,11 @@ variable "custom_metric_alerts" {
         values   = list(string)
       })), [])
     }))
+
+    action_group_ids = optional(list(string))
   }))
   default     = {}
-  description = "Custom metric alerts. Keys are used as resource identifiers."
+  description = "Custom metric alerts. Keys are used as resource identifiers. Set action_group_ids to bypass severity-based routing and notify only the specified action groups."
 }
 
 # -----------------------------------------------------------------------------

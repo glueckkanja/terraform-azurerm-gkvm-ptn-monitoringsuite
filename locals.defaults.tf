@@ -16,6 +16,7 @@
 #       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth}, ${eventhouse_uri} interpolation
 #       trigger: { operator, threshold, metric_trigger_type? }
 #       time_aggregation_method, metric_measure_column?, dimensions?, identity?
+#   (action_group_ids is injected at merge time from var.default_alert_rules_configuration)
 # ---------------------------------------------------------------------------
 
 locals {
@@ -54,10 +55,11 @@ locals {
   _loaded_metric_alerts = {
     for profile, data in local._provider_defaults_substituted : profile => {
       for rule_key, rule in try(data.metric_alerts, {}) : rule_key => merge(rule, {
-        name        = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "name", rule.name)
-        severity    = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "severity", rule.severity)
-        window_size = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "window_size", rule.window_size)
-        frequency   = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "frequency", rule.frequency)
+        name             = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "name", rule.name)
+        severity         = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "severity", rule.severity)
+        window_size      = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "window_size", rule.window_size)
+        frequency        = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "frequency", rule.frequency)
+        action_group_ids = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "action_group_ids", null)
 
         alert_criterias = [
           for c in try(rule.alert_criterias, []) : merge(c, {
@@ -84,6 +86,7 @@ locals {
         auto_mitigation_enabled           = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "auto_mitigation_enabled", try(rule.auto_mitigation_enabled, null))
         time_aggregation_method           = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "time_aggregation_method", try(rule.time_aggregation_method, "Count"))
         metric_measure_column             = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "metric_measure_column", try(rule.metric_measure_column, null))
+        action_group_ids                  = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "action_group_ids", null)
 
         # query_template has template variables substituted via replace() above
         query = try(rule.query_template, try(rule.query, ""))
