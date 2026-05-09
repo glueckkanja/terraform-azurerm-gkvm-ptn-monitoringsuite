@@ -88,17 +88,13 @@ locals {
         metric_measure_column             = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "metric_measure_column", try(rule.metric_measure_column, null))
         action_group_ids                  = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "action_group_ids", null)
 
-        # query_template has template variables substituted via replace() above
         query = try(rule.query_template, try(rule.query, ""))
 
         trigger = merge(try(rule.trigger, {}), {
           threshold = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "threshold", try(rule.trigger.threshold, 0))
         })
 
-        # Pass through only the YAML-defined identity so the alert config remains fully
-        # known at plan time. UAMI injection is deferred to the resource level via
-        # _log_alert_injected_identity, which keeps its known-after-apply identity_ids
-        # out of the for_each map computation.
+        # YAML-only: keeps for_each keys plan-time stable; UAMI injection happens in _log_alert_injected_identity.
         identity = try(rule.identity, null) != null ? {
           enabled      = try(rule.identity.enabled, true)
           type         = rule.identity.type
@@ -110,9 +106,7 @@ locals {
 }
 
 locals {
-  # Single computed identity to inject into default log alerts that have no YAML-defined
-  # identity block. Kept outside the per-alert for loop so "known after apply" identity_ids
-  # (e.g. a newly-created UAMI) do not contaminate the for_each map keys.
+  # Outside the per-alert loop — known-after-apply identity_ids must not reach for_each keys.
   _log_alert_injected_identity = length(var.default_log_alert_identity_ids) > 0 ? {
     enabled      = true
     type         = "UserAssigned"
