@@ -95,21 +95,29 @@ locals {
           threshold = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "threshold", try(rule.trigger.threshold, 0))
         })
 
-        # Inject UAMI into alerts that have no identity block in the YAML.
-        # Alerts that already declare an identity (e.g. SystemAssigned in appzone) are left untouched.
-        # Both object branches must share the same schema so OpenTofu can unify types across for-iterations.
+        # Pass through only the YAML-defined identity so the alert config remains fully
+        # known at plan time. UAMI injection is deferred to the resource level via
+        # _log_alert_injected_identity, which keeps its known-after-apply identity_ids
+        # out of the for_each map computation.
         identity = try(rule.identity, null) != null ? {
           enabled      = try(rule.identity.enabled, true)
           type         = rule.identity.type
           identity_ids = try(rule.identity.identity_ids, null)
-          } : (length(var.default_log_alert_identity_ids) > 0 ? {
-            enabled      = true
-            type         = "UserAssigned"
-            identity_ids = var.default_log_alert_identity_ids
-        } : null)
+        } : null
       })
     }
   }
+}
+
+locals {
+  # Single computed identity to inject into default log alerts that have no YAML-defined
+  # identity block. Kept outside the per-alert for loop so "known after apply" identity_ids
+  # (e.g. a newly-created UAMI) do not contaminate the for_each map keys.
+  _log_alert_injected_identity = length(var.default_log_alert_identity_ids) > 0 ? {
+    enabled      = true
+    type         = "UserAssigned"
+    identity_ids = var.default_log_alert_identity_ids
+  } : null
 }
 
 # ---------------------------------------------------------------------------

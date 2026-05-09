@@ -72,11 +72,23 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   }
 
   dynamic "identity" {
-    for_each = try(each.value.identity.enable, false) || try(each.value.identity.enabled, false) ? [1] : []
+    for_each = (
+      try(each.value.identity.enable, false) || try(each.value.identity.enabled, false)
+      ? [1]
+      : (local._log_alert_injected_identity != null && try(each.value.identity, null) == null ? [1] : [])
+    )
 
     content {
-      type         = try(each.value.identity.type, "SystemAssigned")
-      identity_ids = length(try(each.value.identity.identity_ids, [])) > 0 ? each.value.identity.identity_ids : null
+      type = coalesce(
+        try(each.value.identity.type, null),
+        try(local._log_alert_injected_identity.type, null),
+        "SystemAssigned"
+      )
+      identity_ids = (
+        length(try(each.value.identity.identity_ids, [])) > 0
+        ? each.value.identity.identity_ids
+        : try(local._log_alert_injected_identity.identity_ids, null)
+      )
     }
   }
 
