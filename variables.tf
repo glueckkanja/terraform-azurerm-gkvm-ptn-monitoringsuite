@@ -386,22 +386,22 @@ variable "bandwidth" {
   description = "Bandwidth threshold in bytes for VPN/ExpressRoute gateway monitoring."
 }
 
-variable "eventhouse_uri" {
+variable "adx_cluster_uri" {
   type        = string
   default     = ""
-  description = "Fabric Eventhouse cluster URI substituted into adx() query templates via the $${eventhouse_uri} placeholder. Required when using an alert profile that queries a Fabric Eventhouse."
+  description = "ADX or Fabric Eventhouse cluster URI substituted into query templates via the $${adx_cluster_uri} placeholder. Required when using an alert profile that queries an ADX cluster or Fabric Eventhouse."
 }
 
 variable "fabric_capacity_id" {
   type        = string
   default     = ""
-  description = "Fabric capacity ID substituted into query templates via the $${capacity_id} placeholder. Required when using an alert profile that references a specific Fabric capacity."
+  description = "Fabric capacity ID substituted into query templates via the $${fabric_capacity_id} placeholder. Required when using an alert profile that references a specific Fabric capacity."
 }
 
 variable "fabric_workspace_id" {
   type        = string
   default     = ""
-  description = "Fabric workspace ID substituted into query templates via the $${workspace_id} placeholder. Required when using an alert profile that references a specific Fabric workspace."
+  description = "Fabric workspace ID substituted into query templates via the $${fabric_workspace_id} placeholder. Required when using an alert profile that references a specific Fabric workspace."
 }
 
 variable "default_log_alert_identity_ids" {

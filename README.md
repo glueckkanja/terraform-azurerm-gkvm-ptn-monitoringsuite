@@ -184,9 +184,9 @@ The module substitutes them at plan time:
 | Placeholder | Variable | Purpose |
 | --- | --- | --- |
 | `${primary_scope}` | _(derived from `var.scopes[0]`)_ | Resource ID of the primary monitored resource |
-| `${eventhouse_uri}` | `var.eventhouse_uri` | Fabric Eventhouse cluster URI for `adx()` queries |
-| `${capacity_id}` | `var.fabric_capacity_id` | Fabric capacity ID for capacity-scoped Fabric alerts |
-| `${workspace_id}` | `var.fabric_workspace_id` | Fabric workspace ID for workspace-scoped Fabric alerts |
+| `${adx_cluster_uri}` | `var.adx_cluster_uri` | ADX or Fabric Eventhouse cluster URI for `adx()` queries |
+| `${fabric_capacity_id}` | `var.fabric_capacity_id` | Fabric capacity ID for capacity-scoped Fabric alerts |
+| `${fabric_workspace_id}` | `var.fabric_workspace_id` | Fabric workspace ID for workspace-scoped Fabric alerts |
 | `${remote_ip}` | `var.remote_ip` | Remote IP for VPN tunnel monitoring |
 | `${bandwidth}` | `var.bandwidth` | Bandwidth threshold in bytes |
 

@@ -42,7 +42,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   auto_mitigation_enabled           = try(each.value.auto_mitigation_enabled, true)
 
   criteria {
-    query                   = each.value.query
+    query = replace(replace(replace(
+      each.value.query,
+      "$${adx_cluster_uri}", var.adx_cluster_uri),
+      "$${fabric_capacity_id}", var.fabric_capacity_id),
+    "$${fabric_workspace_id}", var.fabric_workspace_id)
     operator                = try(each.value.trigger.operator, "GreaterThan")
     threshold               = try(each.value.trigger.threshold, 0)
     time_aggregation_method = try(each.value.time_aggregation_method, "Count")
@@ -133,7 +137,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
 
   auto_mitigation_enabled = try(each.value.auto_mitigation_enabled, true)
 
-  query = each.value.query
+  query = replace(replace(replace(
+    each.value.query,
+    "$${adx_cluster_uri}", var.adx_cluster_uri),
+    "$${fabric_capacity_id}", var.fabric_capacity_id),
+  "$${fabric_workspace_id}", var.fabric_workspace_id)
 
   trigger {
     operator  = try(each.value.trigger.operator, "GreaterThan")

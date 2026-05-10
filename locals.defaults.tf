@@ -13,7 +13,8 @@
 #   log_alerts:
 #     <rule_key>:
 #       name, description, severity, time_window, frequency
-#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth}, ${eventhouse_uri}, ${capacity_id}, ${workspace_id} interpolation
+#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth} substituted here (plan-time safe);
+#                       ${adx_cluster_uri}, ${fabric_capacity_id}, ${fabric_workspace_id} deferred to resource level (may be apply-time unknown)
 #       trigger: { operator, threshold, metric_trigger_type? }
 #       time_aggregation_method, metric_measure_column?, dimensions?, identity?
 #   (action_group_ids is injected at merge time from var.default_alert_rules_configuration)
@@ -36,14 +37,11 @@ locals {
       log_alerts = {
         for rule_key, rule in try(data.log_alerts, {}) : rule_key => merge(rule, {
           query_template = try(
-            replace(replace(replace(replace(replace(replace(
+            replace(replace(replace(
               rule.query_template,
               "$${primary_scope}", local.primary_scope),
               "$${remote_ip}", var.remote_ip),
-              "$${bandwidth}", tostring(var.bandwidth)),
-              "$${eventhouse_uri}", var.eventhouse_uri),
-              "$${capacity_id}", var.fabric_capacity_id),
-            "$${workspace_id}", var.fabric_workspace_id),
+            "$${bandwidth}", tostring(var.bandwidth)),
             try(rule.query_template, "")
           )
         })
