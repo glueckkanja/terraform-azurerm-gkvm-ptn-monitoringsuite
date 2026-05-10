@@ -176,6 +176,23 @@ Supported values for `type`: `"SystemAssigned"`, `"UserAssigned"`, `"SystemAssig
 > before attaching it — for example Viewer on the Eventhouse database for `adx()` queries.
 > Role assignments for system-assigned identities are still managed automatically by this module.
 
+## Default alert profile template variables
+
+Provider-served alert profiles may use the following placeholders in `query_template` strings.
+The module substitutes them at plan time:
+
+| Placeholder | Variable | Purpose |
+| --- | --- | --- |
+| `${primary_scope}` | _(derived from `var.scopes[0]`)_ | Resource ID of the primary monitored resource |
+| `${eventhouse_uri}` | `var.eventhouse_uri` | Fabric Eventhouse cluster URI for `adx()` queries |
+| `${capacity_id}` | `var.fabric_capacity_id` | Fabric capacity ID for capacity-scoped Fabric alerts |
+| `${workspace_id}` | `var.fabric_workspace_id` | Fabric workspace ID for workspace-scoped Fabric alerts |
+| `${remote_ip}` | `var.remote_ip` | Remote IP for VPN tunnel monitoring |
+| `${bandwidth}` | `var.bandwidth` | Bandwidth threshold in bytes |
+
+These placeholders apply only to default profiles served by `var.defaults_override`.
+Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placeholder in their `query` field.
+
 ## Severity levels
 
 | Level | Name          | Typical use                           |

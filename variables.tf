@@ -392,6 +392,18 @@ variable "eventhouse_uri" {
   description = "Fabric Eventhouse cluster URI substituted into adx() query templates via the $${eventhouse_uri} placeholder. Required when using an alert profile that queries a Fabric Eventhouse."
 }
 
+variable "fabric_capacity_id" {
+  type        = string
+  default     = ""
+  description = "Fabric capacity ID substituted into query templates via the $${capacity_id} placeholder. Required when using an alert profile that references a specific Fabric capacity."
+}
+
+variable "fabric_workspace_id" {
+  type        = string
+  default     = ""
+  description = "Fabric workspace ID substituted into query templates via the $${workspace_id} placeholder. Required when using an alert profile that references a specific Fabric workspace."
+}
+
 variable "default_log_alert_identity_ids" {
   type        = list(string)
   default     = []
