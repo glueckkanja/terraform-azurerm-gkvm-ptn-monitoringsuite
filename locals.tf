@@ -118,7 +118,7 @@ locals {
 
 locals {
   log_alert_names_v2 = { for key, config in local.merged_log_alerts_v2 : key =>
-    provider::standesamt::name(var.naming_configuration, "azurerm_monitor_scheduled_query_rules_alert_v2", {
+    provider::standesamt::name(var.naming_configuration, "azurerm_monitor_scheduled_query_rules_alert", {
       convention      = var.convention
       location        = var.location
       environment     = var.environment
@@ -214,7 +214,9 @@ locals {
           alert_key            = query
         }
       ] : []
-    ) if(try(config.identity.enabled, false) == true || try(config.identity.enable, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
+    ) if(try(config.identity.enabled, false) == true || try(config.identity.enable, false) == true)
+    && !can(regex("UserAssigned", try(config.identity.type, "SystemAssigned")))
+    && contains(keys(local.merged_log_alerts_v2), query)
   ])
 
   # Default log alert role assignments (v2 only)
@@ -241,7 +243,9 @@ locals {
           alert_key            = query
         }
       ] : []
-    ) if(try(config.identity.enable, false) == true || try(config.identity.enabled, false) == true) && contains(keys(local.merged_log_alerts_v2), query)
+    ) if(try(config.identity.enable, false) == true || try(config.identity.enabled, false) == true)
+    && !can(regex("UserAssigned", try(config.identity.type, "SystemAssigned")))
+    && contains(keys(local.merged_log_alerts_v2), query)
   ])
 
   all_log_alert_role_assignments = concat(

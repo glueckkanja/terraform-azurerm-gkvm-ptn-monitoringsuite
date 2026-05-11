@@ -100,8 +100,9 @@ variable "custom_log_alerts" {
     }))
 
     identity = optional(object({
-      enabled = optional(bool, false)
-      type    = optional(string, "SystemAssigned")
+      enabled      = optional(bool, false)
+      type         = optional(string, "SystemAssigned")
+      identity_ids = optional(list(string), [])
       role_assignments = optional(list(object({
         role_definition_name = string
         scope                = string
@@ -111,7 +112,7 @@ variable "custom_log_alerts" {
     action_group_ids = optional(list(string))
   }))
   default     = {}
-  description = "Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). Set action_group_ids to bypass severity-based routing and notify only the specified action groups."
+  description = "Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). Set action_group_ids to bypass severity-based routing and notify only the specified action groups. Set identity.enabled = true to run the query as a managed identity — required for cross-resource queries such as adx() (Fabric Eventhouse), workspace() across subscriptions, or arg(). When using type = \"UserAssigned\" or \"SystemAssigned, UserAssigned\", set identity.identity_ids to the UAMI resource IDs. The UAMI must already hold the required permissions on the queried external resources — this module does not create role assignments for user-assigned identities."
 }
 
 variable "custom_metric_alerts" {
@@ -383,6 +384,30 @@ variable "bandwidth" {
   type        = number
   default     = 625000000
   description = "Bandwidth threshold in bytes for VPN/ExpressRoute gateway monitoring."
+}
+
+variable "adx_cluster_uri" {
+  type        = string
+  default     = ""
+  description = "ADX or Fabric Eventhouse cluster URI substituted into query templates via the $${adx_cluster_uri} placeholder. Required when using an alert profile that queries an ADX cluster or Fabric Eventhouse."
+}
+
+variable "fabric_capacity_id" {
+  type        = string
+  default     = ""
+  description = "Fabric capacity ID substituted into query templates via the $${fabric_capacity_id} placeholder. Required when using an alert profile that references a specific Fabric capacity."
+}
+
+variable "fabric_workspace_id" {
+  type        = string
+  default     = ""
+  description = "Fabric workspace ID substituted into query templates via the $${fabric_workspace_id} placeholder. Required when using an alert profile that references a specific Fabric workspace."
+}
+
+variable "default_log_alert_identity_ids" {
+  type        = list(string)
+  default     = []
+  description = "UAMI resource IDs applied to all default log alerts that have no identity block in their profile definition. Use this to run cross-resource queries (e.g. adx() to a Fabric Eventhouse) as a specific identity. Has no effect on alerts that already declare an identity in the YAML, on custom_log_alerts, or when left empty."
 }
 
 # -----------------------------------------------------------------------------

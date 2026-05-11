@@ -13,7 +13,8 @@
 #   log_alerts:
 #     <rule_key>:
 #       name, description, severity, time_window, frequency
-#       query_template: KQL with ${primary_scope}, ${remote_ip} interpolation
+#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth} substituted here (plan-time safe);
+#                       ${adx_cluster_uri}, ${fabric_capacity_id}, ${fabric_workspace_id} deferred to resource level (may be apply-time unknown)
 #       trigger: { operator, threshold, metric_trigger_type? }
 #       time_aggregation_method, metric_measure_column?, dimensions?, identity?
 #   (action_group_ids is injected at merge time from var.default_alert_rules_configuration)
@@ -87,15 +88,30 @@ locals {
         metric_measure_column             = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "metric_measure_column", try(rule.metric_measure_column, null))
         action_group_ids                  = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "action_group_ids", null)
 
-        # query_template has template variables substituted via replace() above
         query = try(rule.query_template, try(rule.query, ""))
 
         trigger = merge(try(rule.trigger, {}), {
           threshold = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "threshold", try(rule.trigger.threshold, 0))
         })
+
+        # YAML-only: keeps for_each keys plan-time stable; UAMI injection happens in _log_alert_injected_identity.
+        identity = try(rule.identity, null) != null ? {
+          enabled      = try(rule.identity.enabled, true)
+          type         = rule.identity.type
+          identity_ids = try(rule.identity.identity_ids, null)
+        } : null
       })
     }
   }
+}
+
+locals {
+  # Outside the per-alert loop — known-after-apply identity_ids must not reach for_each keys.
+  _log_alert_injected_identity = length(var.default_log_alert_identity_ids) > 0 ? {
+    enabled      = true
+    type         = "UserAssigned"
+    identity_ids = var.default_log_alert_identity_ids
+  } : null
 }
 
 # ---------------------------------------------------------------------------

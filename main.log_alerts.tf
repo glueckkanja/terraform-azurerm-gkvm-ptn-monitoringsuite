@@ -42,7 +42,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   auto_mitigation_enabled           = try(each.value.auto_mitigation_enabled, true)
 
   criteria {
-    query                   = each.value.query
+    query = replace(replace(replace(
+      each.value.query,
+      "$${adx_cluster_uri}", var.adx_cluster_uri),
+      "$${fabric_capacity_id}", var.fabric_capacity_id),
+    "$${fabric_workspace_id}", var.fabric_workspace_id)
     operator                = try(each.value.trigger.operator, "GreaterThan")
     threshold               = try(each.value.trigger.threshold, 0)
     time_aggregation_method = try(each.value.time_aggregation_method, "Count")
@@ -72,10 +76,23 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   }
 
   dynamic "identity" {
-    for_each = try(each.value.identity.enable, false) || try(each.value.identity.enabled, false) ? [1] : []
+    for_each = (
+      try(each.value.identity.enable, false) || try(each.value.identity.enabled, false)
+      ? [1]
+      : (local._log_alert_injected_identity != null && try(each.value.identity, null) == null ? [1] : [])
+    )
 
     content {
-      type = try(each.value.identity.type, "SystemAssigned")
+      type = coalesce(
+        try(each.value.identity.type, null),
+        try(local._log_alert_injected_identity.type, null),
+        "SystemAssigned"
+      )
+      identity_ids = (
+        length(try(each.value.identity.identity_ids, [])) > 0
+        ? each.value.identity.identity_ids
+        : try(local._log_alert_injected_identity.identity_ids, null)
+      )
     }
   }
 
@@ -120,7 +137,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
 
   auto_mitigation_enabled = try(each.value.auto_mitigation_enabled, true)
 
-  query = each.value.query
+  query = replace(replace(replace(
+    each.value.query,
+    "$${adx_cluster_uri}", var.adx_cluster_uri),
+    "$${fabric_capacity_id}", var.fabric_capacity_id),
+  "$${fabric_workspace_id}", var.fabric_workspace_id)
 
   trigger {
     operator  = try(each.value.trigger.operator, "GreaterThan")
