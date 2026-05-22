@@ -18,6 +18,7 @@ This module provides a generalized, scope-based Azure monitoring alerting soluti
 - **Health alerts** -- Service Health and Resource Health activity log alerts at subscription scope, derived from `scopes`
 - **PagerDuty catalog** -- resolve webhook URLs through a central `pagerduty_config` map; never leaked in plan diffs
 - **Standesamt naming** -- consistent resource naming via provider-defined functions
+- **Alert processing rules** -- suppress alerts by condition (resource type, resource group, severity, signal type, and more) and/or schedule; supports one-time and recurring maintenance windows
 
 ## Usage
 
@@ -175,6 +176,50 @@ Supported values for `type`: `"SystemAssigned"`, `"UserAssigned"`, `"SystemAssig
 > identities. Grant the UAMI the permissions required by its queries on the target resources
 > before attaching it — for example Viewer on the Eventhouse database for `adx()` queries.
 > Role assignments for system-assigned identities are still managed automatically by this module.
+
+## Alert processing rules
+
+Alert processing rules of type suppression prevent matched alerts from dispatching notifications to action groups. The underlying alert rule continues to evaluate — only the delivery of notifications is suppressed. Use them to eliminate known-benign alerts (for example, transient resource health blips during Databricks provisioning) or to silence alerts during planned maintenance windows.
+
+```hcl
+alert_processing_rule_suppressions = {
+  exclude_databricks_vms = {
+    description = "Suppress resource health alerts for VMs inside Databricks managed resource groups"
+    condition = {
+      target_resource_group = {
+        operator = "Contains"
+        values   = ["databricks-rg-"]
+      }
+      target_resource_type = {
+        operator = "Equals"
+        values   = ["Microsoft.Compute/virtualMachines"]
+      }
+    }
+  }
+
+  sunday_patching_window = {
+    description = "Suppress all alerts during Sunday patching window"
+    schedule = {
+      time_zone = "W. Europe Standard Time"
+      recurrence = {
+        weekly = [
+          {
+            days_of_week = ["Sunday"]
+            start_time   = "02:00:00"
+            end_time     = "06:00:00"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+Available condition dimensions: `alert_context`, `alert_rule_id`, `alert_rule_name`, `description`, `monitor_condition`, `monitor_service`, `severity`, `signal_type`, `target_resource`, `target_resource_group`, `target_resource_type`. Each dimension takes `operator` and `values`. Valid operators: `"Equals"`, `"NotEquals"`, `"Contains"`, `"DoesNotContain"`.
+
+When multiple condition sub-blocks are set on one rule, all must match (AND semantics). To suppress alerts matching either of two independent conditions, use two separate rules.
+
+Leave `scopes` null on an entry to inherit `var.scopes`. An empty `condition = {}` with no sub-blocks is rejected by validation — at least one condition dimension or a `schedule` must be set per rule.
 
 ## Default alert profile template variables
 

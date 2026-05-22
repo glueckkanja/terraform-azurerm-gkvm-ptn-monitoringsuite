@@ -66,21 +66,34 @@ output "resource_health_alerts" {
   }
 }
 
+output "alert_processing_rule_suppressions" {
+  description = "Map of created alert processing rule suppression resources."
+  value = {
+    for key, rule in azurerm_monitor_alert_processing_rule_suppression.this : key => {
+      id      = rule.id
+      name    = rule.name
+      enabled = rule.enabled
+    }
+  }
+}
+
 output "alert_count" {
   description = "Count of created alerts by type."
   value = {
-    metric_alerts          = length(azurerm_monitor_metric_alert.this)
-    log_alerts_v2          = length(azurerm_monitor_scheduled_query_rules_alert_v2.this)
-    log_alerts_v1          = length(azurerm_monitor_scheduled_query_rules_alert.this)
-    action_groups          = length(azurerm_monitor_action_group.this)
-    service_health_alerts  = length(azurerm_monitor_activity_log_alert.service_health)
-    resource_health_alerts = length(azurerm_monitor_activity_log_alert.resource_health)
+    metric_alerts                      = length(azurerm_monitor_metric_alert.this)
+    log_alerts_v2                      = length(azurerm_monitor_scheduled_query_rules_alert_v2.this)
+    log_alerts_v1                      = length(azurerm_monitor_scheduled_query_rules_alert.this)
+    action_groups                      = length(azurerm_monitor_action_group.this)
+    service_health_alerts              = length(azurerm_monitor_activity_log_alert.service_health)
+    resource_health_alerts             = length(azurerm_monitor_activity_log_alert.resource_health)
+    alert_processing_rule_suppressions = length(azurerm_monitor_alert_processing_rule_suppression.this)
     total = (
       length(azurerm_monitor_metric_alert.this) +
       length(azurerm_monitor_scheduled_query_rules_alert_v2.this) +
       length(azurerm_monitor_scheduled_query_rules_alert.this) +
       length(azurerm_monitor_activity_log_alert.service_health) +
-      length(azurerm_monitor_activity_log_alert.resource_health)
+      length(azurerm_monitor_activity_log_alert.resource_health) +
+      length(azurerm_monitor_alert_processing_rule_suppression.this)
     )
   }
 }

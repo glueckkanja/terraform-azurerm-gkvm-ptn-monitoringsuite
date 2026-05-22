@@ -190,6 +190,20 @@ locals {
       hash_length     = var.hash_length
     }, var.health_alerts.resource_health.name)
   }
+
+  # standesamt v2.x does not yet register azurerm_monitor_alert_processing_rule_suppression;
+  # "general" applies the full naming convention using the caller-supplied logical name.
+  alert_processing_rule_suppression_names = { for key, cfg in var.alert_processing_rule_suppressions : key =>
+    provider::standesamt::name(var.naming_configuration, "general", { # TODO: update naming "feat: add azurerm_monitor_alert_processing_rule_suppression (apr)" \ --body "Adds naming support for \azurerm_monitor_alert_processing_rule_suppression\(Microsoft.AlertsManagement/actionRules) with official CAF abbreviation \apr\. Constraints match other Monitor alert resources: 1–260 chars."
+      convention      = var.convention
+      location        = var.location
+      environment     = var.environment
+      prefixes        = var.name_prefixes
+      suffixes        = var.name_suffixes
+      name_precedence = var.name_precedence
+      hash_length     = var.hash_length
+    }, coalesce(cfg.name, key))
+  }
 }
 
 # ---------------------------------------------------------------------------
