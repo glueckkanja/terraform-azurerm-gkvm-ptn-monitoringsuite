@@ -80,7 +80,7 @@ resource "azurerm_monitor_alert_processing_rule_suppression" "this" {
         for_each = condition.value.target_resource != null ? [condition.value.target_resource] : []
         content {
           operator = target_resource.value.operator
-          values   = target_resource.value.values
+          values   = [for v in target_resource.value.values : lower(v)]
         }
       }
 
@@ -88,7 +88,7 @@ resource "azurerm_monitor_alert_processing_rule_suppression" "this" {
         for_each = condition.value.target_resource_group != null ? [condition.value.target_resource_group] : []
         content {
           operator = target_resource_group.value.operator
-          values   = target_resource_group.value.values
+          values   = [for v in target_resource_group.value.values : lower(v)]
         }
       }
 
@@ -96,7 +96,7 @@ resource "azurerm_monitor_alert_processing_rule_suppression" "this" {
         for_each = condition.value.target_resource_type != null ? [condition.value.target_resource_type] : []
         content {
           operator = target_resource_type.value.operator
-          values   = target_resource_type.value.values
+          values   = [for v in target_resource_type.value.values : lower(v)]
         }
       }
     }

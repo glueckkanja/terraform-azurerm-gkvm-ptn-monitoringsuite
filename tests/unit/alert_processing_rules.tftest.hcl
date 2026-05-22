@@ -63,7 +63,7 @@ run "databricks_rg_and_vm_exclusion" {
           }
           target_resource_type = {
             operator = "Equals"
-            values   = ["Microsoft.Compute/virtualMachines"]
+            values   = ["microsoft.compute/virtualmachines"]
           }
         }
       }
@@ -170,7 +170,7 @@ run "multiple_rules" {
         condition = {
           target_resource_type = {
             operator = "NotEquals"
-            values   = ["Microsoft.Compute/virtualMachineScaleSets"]
+            values   = ["microsoft.compute/virtualmachinescalesets"]
           }
         }
       }

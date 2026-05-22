@@ -117,7 +117,7 @@ module "subscription_health" {
         }
         target_resource_type = {
           operator = "Equals"
-          values   = ["Microsoft.Compute/virtualMachines"]
+          values   = ["microsoft.compute/virtualmachines"]
         }
       }
     }

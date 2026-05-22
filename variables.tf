@@ -480,7 +480,7 @@ variable "alert_processing_rule_suppressions" {
     tags = optional(map(string))
   }))
   default     = {}
-  description = "Alert processing rules of type 'suppression'. Each entry creates one azurerm_monitor_alert_processing_rule_suppression scoped to this module's subscriptions. Use to silence alerts by target_resource_type (e.g. 'Microsoft.Compute/virtualMachines'), target_resource_group (e.g. Databricks managed RGs), severity, alert_rule_id, alert_rule_name, or any other condition dimension. Leave scopes null to inherit var.scopes. At least one of condition or schedule must be set per rule."
+  description = "Alert processing rules of type 'suppression'. Each entry creates one azurerm_monitor_alert_processing_rule_suppression scoped to this module's subscriptions. Use to silence alerts by target_resource_type (e.g. 'microsoft.compute/virtualmachines'), target_resource_group (e.g. Databricks managed RGs), severity, alert_rule_id, alert_rule_name, or any other condition dimension. Leave scopes null to inherit var.scopes. At least one of condition or schedule must be set per rule."
 
   validation {
     condition = alltrue([
