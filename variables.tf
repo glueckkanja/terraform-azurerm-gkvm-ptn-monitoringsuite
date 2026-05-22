@@ -487,17 +487,17 @@ variable "alert_processing_rule_suppressions" {
       for key, rule in var.alert_processing_rule_suppressions :
       rule.schedule != null || (
         rule.condition != null && anytrue([
-          rule.condition.alert_context != null,
-          rule.condition.alert_rule_id != null,
-          rule.condition.alert_rule_name != null,
-          rule.condition.description != null,
-          rule.condition.monitor_condition != null,
-          rule.condition.monitor_service != null,
-          rule.condition.severity != null,
-          rule.condition.signal_type != null,
-          rule.condition.target_resource != null,
-          rule.condition.target_resource_group != null,
-          rule.condition.target_resource_type != null,
+          try(rule.condition.alert_context, null) != null,
+          try(rule.condition.alert_rule_id, null) != null,
+          try(rule.condition.alert_rule_name, null) != null,
+          try(rule.condition.description, null) != null,
+          try(rule.condition.monitor_condition, null) != null,
+          try(rule.condition.monitor_service, null) != null,
+          try(rule.condition.severity, null) != null,
+          try(rule.condition.signal_type, null) != null,
+          try(rule.condition.target_resource, null) != null,
+          try(rule.condition.target_resource_group, null) != null,
+          try(rule.condition.target_resource_type, null) != null,
         ])
       )
     ])
