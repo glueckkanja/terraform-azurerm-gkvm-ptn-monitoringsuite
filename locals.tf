@@ -191,17 +191,19 @@ locals {
     }, var.health_alerts.resource_health.name)
   }
 
-  # standesamt v2.x does not yet register azurerm_monitor_alert_processing_rule_suppression;
-  # "general" with convention="passthrough" uses the caller-supplied logical name directly,
-  # avoiding invalid names when the default CAF convention prepends an empty abbreviation.
-  # TODO: update to the registered apr type once standesamt adds it:
-  #   "feat: add azurerm_monitor_alert_processing_rule_suppression (apr)"
-  #   Body: Adds naming support for azurerm_monitor_alert_processing_rule_suppression
-  #   (Microsoft.AlertsManagement/actionRules) with official CAF abbreviation "apr".
-  #   Constraints match other Monitor alert resources: 1-260 chars.
+  _naming_configuration_custom = merge(
+    var.naming_configuration,
+    {
+      schema = merge(
+        try(var.naming_configuration_custom.schema, {}),
+        try(var.naming_configuration.schema, {}),
+      )
+    }
+  )
+
   alert_processing_rule_suppression_names = { for key, cfg in var.alert_processing_rule_suppressions : key =>
-    provider::standesamt::name(var.naming_configuration, "general", {
-      convention      = "passthrough"
+    provider::standesamt::name(local._naming_configuration_custom, "azurerm_monitor_alert_processing_rule_suppression", {
+      convention      = var.convention
       location        = var.location
       environment     = var.environment
       prefixes        = var.name_prefixes

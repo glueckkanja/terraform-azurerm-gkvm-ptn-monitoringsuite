@@ -34,7 +34,8 @@ run "default_empty_produces_no_resources" {
   command = plan
 
   variables {
-    naming_configuration = run.setup.naming_configuration
+    naming_configuration        = run.setup.naming_configuration
+    naming_configuration_custom = run.setup.naming_configuration_custom
   }
 
   assert {
@@ -51,7 +52,8 @@ run "databricks_rg_and_vm_exclusion" {
   command = plan
 
   variables {
-    naming_configuration = run.setup.naming_configuration
+    naming_configuration        = run.setup.naming_configuration
+    naming_configuration_custom = run.setup.naming_configuration_custom
 
     alert_processing_rule_suppressions = {
       exclude_databricks_noise = {
@@ -94,7 +96,8 @@ run "scopes_override" {
   command = plan
 
   variables {
-    naming_configuration = run.setup.naming_configuration
+    naming_configuration        = run.setup.naming_configuration
+    naming_configuration_custom = run.setup.naming_configuration_custom
 
     alert_processing_rule_suppressions = {
       narrow_scope = {
@@ -128,7 +131,8 @@ run "weekly_maintenance_window" {
   command = plan
 
   variables {
-    naming_configuration = run.setup.naming_configuration
+    naming_configuration        = run.setup.naming_configuration
+    naming_configuration_custom = run.setup.naming_configuration_custom
 
     alert_processing_rule_suppressions = {
       sunday_patching_window = {
@@ -163,7 +167,8 @@ run "multiple_rules" {
   command = plan
 
   variables {
-    naming_configuration = run.setup.naming_configuration
+    naming_configuration        = run.setup.naming_configuration
+    naming_configuration_custom = run.setup.naming_configuration_custom
 
     alert_processing_rule_suppressions = {
       by_resource_type = {
@@ -214,7 +219,8 @@ run "empty_condition_object_rejected" {
   expect_failures = [var.alert_processing_rule_suppressions]
 
   variables {
-    naming_configuration = run.setup.naming_configuration
+    naming_configuration        = run.setup.naming_configuration
+    naming_configuration_custom = run.setup.naming_configuration_custom
 
     alert_processing_rule_suppressions = {
       bad_rule = {

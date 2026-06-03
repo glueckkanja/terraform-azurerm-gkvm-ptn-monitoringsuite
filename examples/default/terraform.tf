@@ -44,3 +44,15 @@ provider "standesamt" {
   separator   = "-"
   convention  = "default"
 }
+
+# Custom provider — loads ../../schemas/schema.naming.json (relative to examples/default working dir).
+# Contains resource types absent from azure/caf (e.g. azurerm_monitor_alert_processing_rule_suppression).
+provider "standesamt" {
+  alias = "custom"
+  schema_reference = {
+    custom_url = "../../schemas"
+  }
+  environment = "prod"
+  separator   = "-"
+  convention  = "default"
+}

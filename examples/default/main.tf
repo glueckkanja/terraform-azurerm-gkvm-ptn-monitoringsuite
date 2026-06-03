@@ -1,5 +1,9 @@
 data "standesamt_config" "this" {}
 
+data "standesamt_config" "custom" {
+  provider = standesamt.custom
+}
+
 # ---------------------------------------------------------------------------
 # Load full alert profile library from gkvm provider (optional)
 # Without this, only built-in basic profiles are available.
@@ -123,10 +127,11 @@ module "subscription_health" {
     }
   }
 
-  naming_configuration = data.standesamt_config.this.configuration
-  convention           = "default"
-  environment          = var.environment
-  name_prefixes        = ["contoso"]
+  naming_configuration        = data.standesamt_config.this.configuration
+  naming_configuration_custom = data.standesamt_config.custom
+  convention                  = "default"
+  environment                 = var.environment
+  name_prefixes               = ["contoso"]
 
   tags = {
     environment = var.environment
