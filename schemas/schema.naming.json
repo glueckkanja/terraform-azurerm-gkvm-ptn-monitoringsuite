@@ -4,7 +4,7 @@
   "resources": [
     {
       "resourceType": "azurerm_monitor_alert_processing_rule_suppression",
-      "abbreviation": "aprtestddfr",
+      "abbreviation": "apr",
       "minLength": 1,
       "maxLength": 260,
       "validationRegex": "^[a-zA-Z0-9 ][a-zA-Z0-9-._ ]{0,258}[a-zA-Z0-9_]$",
