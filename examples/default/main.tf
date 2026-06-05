@@ -1,5 +1,9 @@
 data "standesamt_config" "this" {}
 
+data "standesamt_config" "custom" {
+  provider = standesamt.custom
+}
+
 # ---------------------------------------------------------------------------
 # Load full alert profile library from gkvm provider (optional)
 # Without this, only built-in basic profiles are available.
@@ -104,10 +108,30 @@ module "subscription_health" {
     }
   }
 
-  naming_configuration = data.standesamt_config.this.configuration
-  convention           = "default"
-  environment          = var.environment
-  name_prefixes        = ["contoso"]
+  # Suppress resource health noise from VMs inside Databricks managed RGs.
+  # Databricks automatically creates RGs with names containing "databricks-rg-".
+  # Both sub-blocks are ANDed: only VMs within those RGs are suppressed, not all resources in them.
+  alert_processing_rule_suppressions = {
+    exclude_databricks_vms = {
+      description = "Suppress resource health alerts for VMs inside Databricks managed resource groups"
+      condition = {
+        target_resource_group = {
+          operator = "Contains"
+          values   = ["databricks-rg-"]
+        }
+        target_resource_type = {
+          operator = "Equals"
+          values   = ["microsoft.compute/virtualmachines"]
+        }
+      }
+    }
+  }
+
+  naming_configuration        = data.standesamt_config.this.configuration
+  naming_configuration_custom = data.standesamt_config.custom
+  convention                  = "default"
+  environment                 = var.environment
+  name_prefixes               = ["contoso"]
 
   tags = {
     environment = var.environment

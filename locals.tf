@@ -190,6 +190,28 @@ locals {
       hash_length     = var.hash_length
     }, var.health_alerts.resource_health.name)
   }
+
+  _naming_configuration_custom = merge(
+    var.naming_configuration,
+    {
+      schema = merge(
+        try(var.naming_configuration_custom.schema, {}),
+        try(var.naming_configuration.schema, {}),
+      )
+    }
+  )
+
+  alert_processing_rule_suppression_names = { for key, cfg in var.alert_processing_rule_suppressions : key =>
+    provider::standesamt::name(local._naming_configuration_custom, "azurerm_monitor_alert_processing_rule_suppression", {
+      convention      = var.convention
+      location        = var.location
+      environment     = var.environment
+      prefixes        = var.name_prefixes
+      suffixes        = var.name_suffixes
+      name_precedence = var.name_precedence
+      hash_length     = var.hash_length
+    }, coalesce(cfg.name, key))
+  }
 }
 
 # ---------------------------------------------------------------------------

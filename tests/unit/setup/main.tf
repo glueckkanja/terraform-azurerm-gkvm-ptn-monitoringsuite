@@ -29,12 +29,37 @@ provider "standesamt" {
   convention  = "default"
 }
 
+# Custom provider — loads schemas/schema.naming.json from the module root.
+# Contains resource types absent from azure/caf (e.g. azurerm_monitor_alert_processing_rule_suppression).
+# path is relative to the process working directory (module root when running tofu test).
+provider "standesamt" {
+  alias = "custom"
+  schema_reference = {
+    custom_url = "./schemas"
+  }
+  environment = "test"
+  separator   = "-"
+  convention  = "default"
+}
+
 data "standesamt_config" "this" {}
+
+data "standesamt_config" "custom" {
+  provider = standesamt.custom
+}
 
 output "naming_configuration" {
   value = {
     configuration = data.standesamt_config.this.configuration
     locations     = {}
     schema        = data.standesamt_config.this.schema
+  }
+}
+
+output "naming_configuration_custom" {
+  value = {
+    configuration = data.standesamt_config.custom.configuration
+    locations     = {}
+    schema        = data.standesamt_config.custom.schema
   }
 }

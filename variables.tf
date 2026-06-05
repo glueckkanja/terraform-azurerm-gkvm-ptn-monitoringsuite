@@ -432,3 +432,98 @@ variable "enable_telemetry" {
 }
 
 # NOTE: lock and diagnostic_settings planned for Phase 1.1 — not yet implemented
+
+# -----------------------------------------------------------------------------
+# Alert processing rules — suppression
+# -----------------------------------------------------------------------------
+
+variable "alert_processing_rule_suppressions" {
+  type = map(object({
+    name        = optional(string)
+    description = optional(string, "")
+    enabled     = optional(bool, true)
+    scopes      = optional(list(string))
+    condition = optional(object({
+      alert_context         = optional(object({ operator = string, values = list(string) }))
+      alert_rule_id         = optional(object({ operator = string, values = list(string) }))
+      alert_rule_name       = optional(object({ operator = string, values = list(string) }))
+      description           = optional(object({ operator = string, values = list(string) }))
+      monitor_condition     = optional(object({ operator = string, values = list(string) }))
+      monitor_service       = optional(object({ operator = string, values = list(string) }))
+      severity              = optional(object({ operator = string, values = list(string) }))
+      signal_type           = optional(object({ operator = string, values = list(string) }))
+      target_resource       = optional(object({ operator = string, values = list(string) }))
+      target_resource_group = optional(object({ operator = string, values = list(string) }))
+      target_resource_type  = optional(object({ operator = string, values = list(string) }))
+    }))
+    schedule = optional(object({
+      effective_from  = optional(string)
+      effective_until = optional(string)
+      time_zone       = optional(string, "UTC")
+      recurrence = optional(object({
+        daily = optional(list(object({
+          start_time = string
+          end_time   = string
+        })), [])
+        weekly = optional(list(object({
+          days_of_week = list(string)
+          start_time   = optional(string)
+          end_time     = optional(string)
+        })), [])
+        monthly = optional(list(object({
+          days_of_month = list(number)
+          start_time    = optional(string)
+          end_time      = optional(string)
+        })), [])
+      }))
+    }))
+    tags = optional(map(string))
+  }))
+  default     = {}
+  description = "Alert processing rules of type 'suppression'. Each entry creates one azurerm_monitor_alert_processing_rule_suppression scoped to this module's subscriptions. Use to silence alerts by target_resource_type (e.g. 'microsoft.compute/virtualmachines'), target_resource_group (e.g. Databricks managed RGs), severity, alert_rule_id, alert_rule_name, or any other condition dimension. Leave scopes null to inherit var.scopes. At least one of condition or schedule must be set per rule."
+
+  validation {
+    condition = alltrue([
+      for key, rule in var.alert_processing_rule_suppressions :
+      rule.schedule != null || (
+        rule.condition != null && anytrue([
+          try(rule.condition.alert_context, null) != null,
+          try(rule.condition.alert_rule_id, null) != null,
+          try(rule.condition.alert_rule_name, null) != null,
+          try(rule.condition.description, null) != null,
+          try(rule.condition.monitor_condition, null) != null,
+          try(rule.condition.monitor_service, null) != null,
+          try(rule.condition.severity, null) != null,
+          try(rule.condition.signal_type, null) != null,
+          try(rule.condition.target_resource, null) != null,
+          try(rule.condition.target_resource_group, null) != null,
+          try(rule.condition.target_resource_type, null) != null,
+        ])
+      )
+    ])
+    error_message = "Each alert_processing_rule_suppressions entry must set at least one of: schedule, or condition with at least one condition sub-block (e.g. severity, target_resource_type). An empty condition = {} with no sub-blocks would suppress all alerts at scope unconditionally."
+  }
+
+  validation {
+    condition = alltrue([
+      for key, rule in var.alert_processing_rule_suppressions :
+      rule.condition == null ? true : alltrue([
+        for op in compact([
+          try(rule.condition.alert_context.operator, null),
+          try(rule.condition.alert_rule_id.operator, null),
+          try(rule.condition.alert_rule_name.operator, null),
+          try(rule.condition.description.operator, null),
+          try(rule.condition.monitor_condition.operator, null),
+          try(rule.condition.monitor_service.operator, null),
+          try(rule.condition.severity.operator, null),
+          try(rule.condition.signal_type.operator, null),
+          try(rule.condition.target_resource.operator, null),
+          try(rule.condition.target_resource_group.operator, null),
+          try(rule.condition.target_resource_type.operator, null),
+        ]) :
+        contains(["Equals", "NotEquals", "Contains", "DoesNotContain"], op)
+      ])
+    ])
+    error_message = "Each condition sub-block operator must be one of: Equals, NotEquals, Contains, DoesNotContain."
+  }
+}

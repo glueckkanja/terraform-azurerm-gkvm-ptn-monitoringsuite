@@ -18,6 +18,7 @@ This module provides a generalized, scope-based Azure monitoring alerting soluti
 - **Health alerts** -- Service Health and Resource Health activity log alerts at subscription scope, derived from `scopes`
 - **PagerDuty catalog** -- resolve webhook URLs through a central `pagerduty_config` map; never leaked in plan diffs
 - **Standesamt naming** -- consistent resource naming via provider-defined functions
+- **Alert processing rules** -- suppress alerts by condition (resource type, resource group, severity, signal type, and more) and/or schedule; supports one-time and recurring maintenance windows
 
 ## Usage
 
@@ -176,6 +177,50 @@ Supported values for `type`: `"SystemAssigned"`, `"UserAssigned"`, `"SystemAssig
 > before attaching it — for example Viewer on the Eventhouse database for `adx()` queries.
 > Role assignments for system-assigned identities are still managed automatically by this module.
 
+## Alert processing rules
+
+Alert processing rules of type suppression prevent matched alerts from dispatching notifications to action groups. The underlying alert rule continues to evaluate — only the delivery of notifications is suppressed. Use them to eliminate known-benign alerts (for example, transient resource health blips during Databricks provisioning) or to silence alerts during planned maintenance windows.
+
+```hcl
+alert_processing_rule_suppressions = {
+  exclude_databricks_vms = {
+    description = "Suppress resource health alerts for VMs inside Databricks managed resource groups"
+    condition = {
+      target_resource_group = {
+        operator = "Contains"
+        values   = ["databricks-rg-"]
+      }
+      target_resource_type = {
+        operator = "Equals"
+        values   = ["microsoft.compute/virtualmachines"]
+      }
+    }
+  }
+
+  sunday_patching_window = {
+    description = "Suppress all alerts during Sunday patching window"
+    schedule = {
+      time_zone = "W. Europe Standard Time"
+      recurrence = {
+        weekly = [
+          {
+            days_of_week = ["Sunday"]
+            start_time   = "02:00:00"
+            end_time     = "06:00:00"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+Available condition dimensions: `alert_context`, `alert_rule_id`, `alert_rule_name`, `description`, `monitor_condition`, `monitor_service`, `severity`, `signal_type`, `target_resource`, `target_resource_group`, `target_resource_type`. Each dimension takes `operator` and `values`. Valid operators: `"Equals"`, `"NotEquals"`, `"Contains"`, `"DoesNotContain"`.
+
+When multiple condition sub-blocks are set on one rule, all must match (AND semantics). To suppress alerts matching either of two independent conditions, use two separate rules.
+
+Leave `scopes` null on an entry to inherit `var.scopes`. An empty `condition = {}` with no sub-blocks is rejected by validation — at least one condition dimension or a `schedule` must be set per rule.
+
 ## Default alert profile template variables
 
 Provider-served alert profiles may use the following placeholders in `query_template` strings.
@@ -249,6 +294,7 @@ Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placehold
 | [azurerm_monitor_action_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_action_group) | resource |
 | [azurerm_monitor_activity_log_alert.resource_health](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_activity_log_alert) | resource |
 | [azurerm_monitor_activity_log_alert.service_health](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_activity_log_alert) | resource |
+| [azurerm_monitor_alert_processing_rule_suppression.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_alert_processing_rule_suppression) | resource |
 | [azurerm_monitor_metric_alert.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_metric_alert) | resource |
 | [azurerm_monitor_scheduled_query_rules_alert.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_scheduled_query_rules_alert) | resource |
 | [azurerm_monitor_scheduled_query_rules_alert_v2.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_scheduled_query_rules_alert_v2) | resource |
@@ -263,6 +309,7 @@ Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placehold
 | <a name="input_action_group_routing"></a> [action\_group\_routing](#input\_action\_group\_routing) | External (pre-existing) action groups with severity-based routing. Each entry maps an action group ID to the severity levels (0=Critical … 4=Verbose) it should receive. Use action\_groups to create new action groups within this module. | <pre>list(object({<br/>    action_group_id = string<br/>    severities      = list(number)<br/>  }))</pre> | `[]` | no |
 | <a name="input_action_groups"></a> [action\_groups](#input\_action\_groups) | Action groups to create within the module. Each action group includes severity routing and one or more receiver types. | <pre>map(object({<br/>    short_name = string<br/>    severities = list(number)<br/>    enabled    = optional(bool, true)<br/><br/>    email_receivers = optional(map(object({<br/>      name                    = string<br/>      email_address           = string<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    webhook_receivers = optional(map(object({<br/>      name                    = optional(string)<br/>      service_uri             = optional(string)<br/>      pagerduty_key           = optional(string)<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    sms_receivers = optional(map(object({<br/>      name         = string<br/>      country_code = string<br/>      phone_number = string<br/>    })), {})<br/><br/>    azure_app_push_receivers = optional(map(object({<br/>      name          = string<br/>      email_address = string<br/>    })), {})<br/><br/>    arm_role_receivers = optional(map(object({<br/>      name                    = string<br/>      role_id                 = string<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    logic_app_receivers = optional(map(object({<br/>      name                    = string<br/>      resource_id             = string<br/>      callback_url            = string<br/>      use_common_alert_schema = optional(bool, true)<br/>    })), {})<br/><br/>    azure_function_receivers = optional(map(object({<br/>      name                     = string<br/>      function_app_resource_id = string<br/>      function_name            = string<br/>      http_trigger_url         = string<br/>      use_common_alert_schema  = optional(bool, true)<br/>    })), {})<br/>  }))</pre> | `{}` | no |
 | <a name="input_adx_cluster_uri"></a> [adx\_cluster\_uri](#input\_adx\_cluster\_uri) | ADX or Fabric Eventhouse cluster URI substituted into query templates via the ${adx\_cluster\_uri} placeholder. Required when using an alert profile that queries an ADX cluster or Fabric Eventhouse. | `string` | `""` | no |
+| <a name="input_alert_processing_rule_suppressions"></a> [alert\_processing\_rule\_suppressions](#input\_alert\_processing\_rule\_suppressions) | Alert processing rules of type 'suppression'. Each entry creates one azurerm\_monitor\_alert\_processing\_rule\_suppression scoped to this module's subscriptions. Use to silence alerts by target\_resource\_type (e.g. 'microsoft.compute/virtualmachines'), target\_resource\_group (e.g. Databricks managed RGs), severity, alert\_rule\_id, alert\_rule\_name, or any other condition dimension. Leave scopes null to inherit var.scopes. At least one of condition or schedule must be set per rule. | <pre>map(object({<br/>    name        = optional(string)<br/>    description = optional(string, "")<br/>    enabled     = optional(bool, true)<br/>    scopes      = optional(list(string))<br/>    condition = optional(object({<br/>      alert_context         = optional(object({ operator = string, values = list(string) }))<br/>      alert_rule_id         = optional(object({ operator = string, values = list(string) }))<br/>      alert_rule_name       = optional(object({ operator = string, values = list(string) }))<br/>      description           = optional(object({ operator = string, values = list(string) }))<br/>      monitor_condition     = optional(object({ operator = string, values = list(string) }))<br/>      monitor_service       = optional(object({ operator = string, values = list(string) }))<br/>      severity              = optional(object({ operator = string, values = list(string) }))<br/>      signal_type           = optional(object({ operator = string, values = list(string) }))<br/>      target_resource       = optional(object({ operator = string, values = list(string) }))<br/>      target_resource_group = optional(object({ operator = string, values = list(string) }))<br/>      target_resource_type  = optional(object({ operator = string, values = list(string) }))<br/>    }))<br/>    schedule = optional(object({<br/>      effective_from  = optional(string)<br/>      effective_until = optional(string)<br/>      time_zone       = optional(string, "UTC")<br/>      recurrence = optional(object({<br/>        daily = optional(list(object({<br/>          start_time = string<br/>          end_time   = string<br/>        })), [])<br/>        weekly = optional(list(object({<br/>          days_of_week = list(string)<br/>          start_time   = optional(string)<br/>          end_time     = optional(string)<br/>        })), [])<br/>        monthly = optional(list(object({<br/>          days_of_month = list(number)<br/>          start_time    = optional(string)<br/>          end_time      = optional(string)<br/>        })), [])<br/>      }))<br/>    }))<br/>    tags = optional(map(string))<br/>  }))</pre> | `{}` | no |
 | <a name="input_alert_profile"></a> [alert\_profile](#input\_alert\_profile) | Alert profile to apply default alerts for. Must match a profile name from built-in defaults or defaults\_override. Set to null to disable default alerts entirely. Combined with apply\_default\_rules=false and empty custom\_*\_alerts this makes the alerting layer fully optional — e.g. when the module is deployed only for health alerts or only for action groups. | `string` | `null` | no |
 | <a name="input_apply_default_rules"></a> [apply\_default\_rules](#input\_apply\_default\_rules) | Enable default alert rules for the selected alert\_profile. Has no effect if alert\_profile is null. | `bool` | `true` | no |
 | <a name="input_bandwidth"></a> [bandwidth](#input\_bandwidth) | Bandwidth threshold in bytes for VPN/ExpressRoute gateway monitoring. | `number` | `625000000` | no |
@@ -285,6 +332,7 @@ Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placehold
 | <a name="input_name_prefixes"></a> [name\_prefixes](#input\_name\_prefixes) | Name prefixes for resource naming. | `list(string)` | `[]` | no |
 | <a name="input_name_suffixes"></a> [name\_suffixes](#input\_name\_suffixes) | Name suffixes for resource naming. | `list(string)` | `[]` | no |
 | <a name="input_naming_configuration"></a> [naming\_configuration](#input\_naming\_configuration) | Standesamt naming configuration object. Obtained from the standesamt\_config data source. | `any` | n/a | yes |
+| <a name="input_naming_configuration_custom"></a> [naming\_configuration\_custom](#input\_naming\_configuration\_custom) | Optional standesamt naming configuration produced by a standesamt\_config data source whose provider loads a custom schema (custom\_url). Supplies naming for resource types absent from the azure/caf library (e.g. azurerm\_monitor\_alert\_processing\_rule\_suppression). Its schema entries are merged under var.naming\_configuration; the normal naming schema wins on conflict. | `any` | `null` | no |
 | <a name="input_pagerduty_config"></a> [pagerduty\_config](#input\_pagerduty\_config) | PagerDuty endpoint catalog. When a webhook\_receiver sets pagerduty\_key, the receiver's service\_uri is set to pagerduty\_config[pagerduty\_key].webhook and its name is set to 'PagerDuty <name>'. Marked sensitive to prevent webhook URLs from appearing in plan output. | <pre>map(object({<br/>    name    = string<br/>    webhook = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_remote_ip"></a> [remote\_ip](#input\_remote\_ip) | Remote IP address for VPN tunnel monitoring. Used by virtual\_network\_gateway alert profile. | `string` | `""` | no |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Resource group where alert resources will be created. | `string` | n/a | yes |
@@ -297,6 +345,7 @@ Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placehold
 | ---- | ----------- |
 | <a name="output_action_groups"></a> [action\_groups](#output\_action\_groups) | Map of module-created action group resources. |
 | <a name="output_alert_count"></a> [alert\_count](#output\_alert\_count) | Count of created alerts by type. |
+| <a name="output_alert_processing_rule_suppressions"></a> [alert\_processing\_rule\_suppressions](#output\_alert\_processing\_rule\_suppressions) | Map of created alert processing rule suppression resources. |
 | <a name="output_all_action_group_routing"></a> [all\_action\_group\_routing](#output\_all\_action\_group\_routing) | Unified list of all action groups (external + module-created) with severity routing. |
 | <a name="output_log_alerts_v1"></a> [log\_alerts\_v1](#output\_log\_alerts\_v1) | Map of created v1 log alert resources (metric trigger). |
 | <a name="output_log_alerts_v2"></a> [log\_alerts\_v2](#output\_log\_alerts\_v2) | Map of created v2 log alert resources. |

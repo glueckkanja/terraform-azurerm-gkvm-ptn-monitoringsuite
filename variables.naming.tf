@@ -36,3 +36,9 @@ variable "hash_length" {
   default     = 0
   description = "Hash length for resource naming."
 }
+
+variable "naming_configuration_custom" {
+  type        = any
+  default     = null
+  description = "Optional standesamt naming configuration produced by a standesamt_config data source whose provider loads a custom schema (custom_url). Supplies naming for resource types absent from the azure/caf library (e.g. azurerm_monitor_alert_processing_rule_suppression). Its schema entries are merged under var.naming_configuration; the normal naming schema wins on conflict."
+}
