@@ -102,10 +102,10 @@ default_alert_rules_configuration = {
 
 When using `name_prefixes`, the module automatically prepends a customer-identifiable prefix to all alert descriptions. This is especially useful in the one-service-per-solution MSP model where PagerDuty incident titles (derived from alert descriptions) must immediately identify which customer's environment is being alerted.
 
-For example, with `name_prefixes = ["CUST"]`, all metric, log, and health alert descriptions are prefixed with `[CUST]`:
+The prefix is derived from the first element of `name_prefixes`, taking only the part before the first `-`. This means a monitoring key like `CUST-PROD` produces the prefix `[CUST]`:
 
 ```hcl
-name_prefixes = ["CUST"]
+name_prefixes = ["CUST-PROD"]
 
 # Metric alert description becomes: "[CUST] Firewall health"
 # Log alert description becomes: "[CUST] High memory usage"
@@ -113,7 +113,7 @@ name_prefixes = ["CUST"]
 # Resource Health alert becomes: "[CUST] Resource Health alert for subscription ..."
 ```
 
-If `name_prefixes` is empty or not provided, no prefix is added to descriptions. This allows shared monitoring setups where prefixing is not needed.
+If `name_prefixes` is empty or not provided, no prefix is added to descriptions.
 
 ### PagerDuty routing
 

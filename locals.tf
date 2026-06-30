@@ -13,7 +13,7 @@ locals {
   # Prefix folded into every alert description so PagerDuty incident titles
   # (which use the description) are customer-identifiable under the
   # one-service-per-solution model. Empty name_prefixes => no prefix.
-  description_prefix = length(var.name_prefixes) > 0 ? format("[%s] ", var.name_prefixes[0]) : ""
+  description_prefix = length(var.name_prefixes) > 0 ? format("[%s] ", split("-", var.name_prefixes[0])[0]) : ""
 }
 
 # ---------------------------------------------------------------------------

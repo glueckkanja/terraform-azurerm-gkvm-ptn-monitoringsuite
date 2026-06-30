@@ -195,6 +195,20 @@ run "custom_log_alert_with_prefix" {
   }
 }
 
+run "compound_monitoring_key_uses_customer_part_only" {
+  command = plan
+
+  variables {
+    naming_configuration = run.setup.naming_configuration
+    name_prefixes        = ["GABCF-ADF"]
+  }
+
+  assert {
+    condition     = azurerm_monitor_metric_alert.this[keys(azurerm_monitor_metric_alert.this)[0]].description == "[GABCF] Firewall health"
+    error_message = "Compound monitoring key GABCF-ADF should produce prefix [GABCF], not [GABCF-ADF]."
+  }
+}
+
 run "empty_description_with_prefix" {
   command = plan
 
