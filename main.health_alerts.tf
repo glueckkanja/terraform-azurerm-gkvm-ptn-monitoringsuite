@@ -14,7 +14,7 @@ resource "azurerm_monitor_activity_log_alert" "service_health" {
   location            = var.health_alerts.service_health.location
 
   scopes      = [each.value]
-  description = format("Service Health alert for subscription %s", split("/", each.value)[2])
+  description = format("%sService Health alert for subscription %s", local.description_prefix, split("/", each.value)[2])
 
   criteria {
     category = "ServiceHealth"
@@ -50,7 +50,7 @@ resource "azurerm_monitor_activity_log_alert" "resource_health" {
   location            = var.health_alerts.resource_health.location
 
   scopes      = [each.value]
-  description = format("Resource Health alert for subscription %s", split("/", each.value)[2])
+  description = format("%sResource Health alert for subscription %s", local.description_prefix, split("/", each.value)[2])
 
   criteria {
     category = "ResourceHealth"

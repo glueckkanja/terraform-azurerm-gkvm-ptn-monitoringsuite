@@ -98,6 +98,23 @@ default_alert_rules_configuration = {
 }
 ```
 
+### Alert description prefixes
+
+When using `name_prefixes`, the module automatically prepends a customer-identifiable prefix to all alert descriptions. This is especially useful in the one-service-per-solution MSP model where PagerDuty incident titles (derived from alert descriptions) must immediately identify which customer's environment is being alerted.
+
+For example, with `name_prefixes = ["CUST"]`, all metric, log, and health alert descriptions are prefixed with `[CUST]`:
+
+```hcl
+name_prefixes = ["CUST"]
+
+# Metric alert description becomes: "[CUST] Firewall health"
+# Log alert description becomes: "[CUST] High memory usage"
+# Service Health alert becomes: "[CUST] Service Health alert for subscription ..."
+# Resource Health alert becomes: "[CUST] Resource Health alert for subscription ..."
+```
+
+If `name_prefixes` is empty or not provided, no prefix is added to descriptions. This allows shared monitoring setups where prefixing is not needed.
+
 ### PagerDuty routing
 
 Pass a catalog of PagerDuty integrations via `pagerduty_config` and reference catalog entries from individual webhook receivers using `pagerduty_key`. The module substitutes the receiver `name` and `service_uri` from the catalog entry. `pagerduty_config` is marked `sensitive`, so webhook URLs do not appear in plan output.
