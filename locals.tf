@@ -9,6 +9,11 @@ locals {
     for s in var.scopes :
     regex("^/subscriptions/[0-9a-f-]+", lower(s))
   ])
+
+  # Prefix folded into every alert description so PagerDuty incident titles
+  # (which use the description) are customer-identifiable under the
+  # one-service-per-solution model. Empty name_prefixes => no prefix.
+  description_prefix = length(var.name_prefixes) > 0 ? format("[%s] ", split("-", var.name_prefixes[0])[0]) : ""
 }
 
 # ---------------------------------------------------------------------------

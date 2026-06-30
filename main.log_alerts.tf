@@ -30,7 +30,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   name                = local.log_alert_names_v2[each.key]
   resource_group_name = var.resource_group_name
   scopes              = [var.log_analytics_workspace_id]
-  description         = try(each.value.description, "")
+  description         = trimspace("${local.description_prefix}${try(each.value.description, "")}")
 
   location = coalesce(var.log_analytics_workspace_location, var.location)
 
@@ -127,7 +127,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
   name                = local.log_alert_names_v1[each.key]
   resource_group_name = var.resource_group_name
   data_source_id      = var.log_analytics_workspace_id
-  description         = try(each.value.description, "")
+  description         = trimspace("${local.description_prefix}${try(each.value.description, "")}")
 
   location = coalesce(var.log_analytics_workspace_location, var.location)
 

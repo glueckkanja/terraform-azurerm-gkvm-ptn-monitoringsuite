@@ -6,7 +6,7 @@ resource "azurerm_monitor_metric_alert" "this" {
   scopes                   = each.value.metric_namespace == "Microsoft.OperationalInsights/workspaces" ? [var.log_analytics_workspace_id] : var.scopes
   target_resource_type     = try(each.value.target_resource_type, null)
   target_resource_location = var.location
-  description              = each.value.description
+  description              = trimspace("${local.description_prefix}${each.value.description}")
   enabled                  = try(each.value.enabled, true)
 
   frequency   = each.value.frequency
