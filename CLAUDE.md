@@ -38,7 +38,7 @@ All providers pinned to exact versions. Update regularly.
 ## Adding a new alert profile
 
 1. Create `defaults/<profile_name>.yaml` with `metric_alerts` and `log_alerts` keys
-2. Use `query_template` with `${primary_scope}`, `${remote_ip}`, `${bandwidth}` for variable substitution
+2. Use `query_template` with `${primary_scope}`, `${remote_ip}`, `${bandwidth}`, `${data_lake_deletion_exclusion_predicate}` for variable substitution
 3. No HCL changes needed — `fileset()` auto-discovers new YAML files
 
 ## Testing

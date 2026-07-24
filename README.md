@@ -251,9 +251,54 @@ The module substitutes them at plan time:
 | `${fabric_workspace_id}` | `var.fabric_workspace_id` | Fabric workspace ID for workspace-scoped Fabric alerts |
 | `${remote_ip}` | `var.remote_ip` | Remote IP for VPN tunnel monitoring |
 | `${bandwidth}` | `var.bandwidth` | Bandwidth threshold in bytes |
+| `${data_lake_deletion_exclusion_predicate}` | `var.data_lake_deletion_exclusions` (generated) | Generated KQL predicate that excludes known-expected deletions from the data lake deletion alerts |
 
 These placeholders apply only to default profiles served by `var.defaults_override`.
 Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placeholder in their `query` field.
+
+### Data lake deletion alerts
+
+The `data_lake` profile ships two deletion log alerts, differentiated by blast radius:
+
+| Alert | Severity | Threshold | Trigger condition |
+| --- | --- | --- | --- |
+| `default_container_deletion` | 1 (Error) | > 0 per window | Any non-excluded `DeleteContainer` operation |
+| `default_directory_deletion` | 2 (Warning) | > 50 per 5-minute window | Non-excluded `DeleteDirectory` operations exceeding volume threshold |
+
+Container deletion is high-blast-radius and fires immediately on any non-excluded event. Directory deletion tolerates routine single-table drops (for example, Databricks `DROP TABLE`) and fires only when volume indicates mass deletion.
+
+#### Exclusion mechanism
+
+Both alerts share a predicate built from `var.data_lake_deletion_exclusions` — a list of rules, each containing:
+
+- `paths` — one or more path terms; a deletion is a candidate for exclusion if its `ObjectKey` contains any of these terms
+- `object_ids` — an optional list of Azure AD object IDs; when provided, the path match is further narrowed to requests from those identities
+
+A deletion is suppressed only when it matches a rule: the `ObjectKey` must contain a matching path term, and — when `object_ids` is non-empty — the requester's `RequesterObjectId` must be in the list. Providing `object_ids` without `paths` suppresses nothing; object IDs only narrow a path match.
+
+The module generates a KQL predicate string from these rules and substitutes it into both deletion alert queries as `${data_lake_deletion_exclusion_predicate}`.
+
+#### Example: excluding Databricks staging operations
+
+```hcl
+data_lake_deletion_exclusions = [
+  {
+    # Suppress alerts for all deletions under the Databricks staging database path
+    paths = ["staging_db"]
+  },
+  {
+    # Suppress alerts for the ETL pipeline path, scoped to the Access Connector's managed identity
+    paths      = ["etl_pipeline"]
+    object_ids = ["00000000-0000-0000-0000-000000000000"]
+  }
+]
+```
+
+The first rule suppresses any deletion whose `ObjectKey` contains `staging_db`, regardless of requester identity. The second rule suppresses `etl_pipeline` deletions only when the requester matches the specified managed identity. All other deletions continue to trigger alerts normally.
+
+#### Recoverability
+
+If the storage account has blob soft delete, container soft delete, or versioning enabled, deleted data remains recoverable within the retention period. Treat these alerts as notices requiring investigation rather than emergencies in that case.
 
 ## Severity levels
 
@@ -333,6 +378,7 @@ Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placehold
 | <a name="input_convention"></a> [convention](#input\_convention) | Naming convention. Use 'passthrough' to skip convention and pass resource name through directly. | `string` | n/a | yes |
 | <a name="input_custom_log_alerts"></a> [custom\_log\_alerts](#input\_custom\_log\_alerts) | Custom log query alerts. Keys are used as resource identifiers. Use %%SCOPE%% in query strings as placeholder for the primary scope (first entry in var.scopes). Set action\_group\_ids to bypass severity-based routing and notify only the specified action groups. Set identity.enabled = true to run the query as a managed identity — required for cross-resource queries such as adx() (Fabric Eventhouse), workspace() across subscriptions, or arg(). When using type = "UserAssigned" or "SystemAssigned, UserAssigned", set identity.identity\_ids to the UAMI resource IDs. The UAMI must already hold the required permissions on the queried external resources — this module does not create role assignments for user-assigned identities. | <pre>map(object({<br/>    name                              = string<br/>    description                       = optional(string, "")<br/>    severity                          = number<br/>    time_window                       = optional(string, "PT15M")<br/>    frequency                         = optional(string, "PT5M")<br/>    query                             = string<br/>    mute_actions_after_alert_duration = optional(string)<br/>    auto_mitigation_enabled           = optional(bool, true)<br/>    time_aggregation_method           = optional(string, "Count")<br/>    metric_measure_column             = optional(string)<br/>    resource_id_column                = optional(string)<br/><br/>    dimensions = optional(list(object({<br/>      name     = string<br/>      operator = optional(string, "Include")<br/>      values   = list(string)<br/>    })), [])<br/><br/>    failing_periods = optional(object({<br/>      minimum_failing_periods_to_trigger_alert = optional(number, 1)<br/>      number_of_evaluation_periods             = optional(number, 1)<br/>    }))<br/><br/>    trigger = optional(object({<br/>      operator  = string<br/>      threshold = number<br/><br/>      metric_trigger = optional(object({<br/>        operator            = string<br/>        threshold           = number<br/>        metric_trigger_type = string<br/>        metric_column       = string<br/>      }))<br/>    }))<br/><br/>    identity = optional(object({<br/>      enabled      = optional(bool, false)<br/>      type         = optional(string, "SystemAssigned")<br/>      identity_ids = optional(list(string), [])<br/>      role_assignments = optional(list(object({<br/>        role_definition_name = string<br/>        scope                = string<br/>      })), [])<br/>    }))<br/><br/>    action_group_ids = optional(list(string))<br/>  }))</pre> | `{}` | no |
 | <a name="input_custom_metric_alerts"></a> [custom\_metric\_alerts](#input\_custom\_metric\_alerts) | Custom metric alerts. Keys are used as resource identifiers. Set action\_group\_ids to bypass severity-based routing and notify only the specified action groups. | <pre>map(object({<br/>    name                 = string<br/>    description          = optional(string, "")<br/>    severity             = number<br/>    window_size          = optional(string, "PT15M")<br/>    frequency            = optional(string, "PT5M")<br/>    metric_namespace     = string<br/>    target_resource_type = optional(string)<br/>    enabled              = optional(bool, true)<br/><br/>    alert_criterias = list(object({<br/>      metric_name = string<br/>      operator    = string<br/>      aggregation = string<br/>      threshold   = number<br/><br/>      dimensions = optional(list(object({<br/>        name     = string<br/>        operator = optional(string, "Include")<br/>        values   = list(string)<br/>      })), [])<br/>    }))<br/><br/>    action_group_ids = optional(list(string))<br/>  }))</pre> | `{}` | no |
+| <a name="input_data_lake_deletion_exclusions"></a> [data\_lake\_deletion\_exclusions](#input\_data\_lake\_deletion\_exclusions) | Exclusion rules for the data\_lake container-deletion and directory-deletion alerts. A deletion is suppressed when it matches any rule: its StorageBlobLogs ObjectKey contains one of the rule's paths terms AND, when object\_ids is non-empty, its RequesterObjectId is in object\_ids (e.g. the Databricks Access Connector managed identity). Providing object\_ids without paths suppresses nothing — object IDs only narrow a path match. | <pre>list(object({<br/>    paths      = list(string)<br/>    object_ids = optional(list(string), [])<br/>  }))</pre> | `[]` | no |
 | <a name="input_default_alert_rules_configuration"></a> [default\_alert\_rules\_configuration](#input\_default\_alert\_rules\_configuration) | Override individual default alert rules. Keys match default rule names. Supports: disable\_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window\_size, frequency, name, time\_aggregation\_method, metric\_measure\_column, mute\_actions\_after\_alert\_duration, auto\_mitigation\_enabled, action\_group\_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule). | `any` | `{}` | no |
 | <a name="input_default_log_alert_identity_ids"></a> [default\_log\_alert\_identity\_ids](#input\_default\_log\_alert\_identity\_ids) | UAMI resource IDs applied to all default log alerts that have no identity block in their profile definition. Use this to run cross-resource queries (e.g. adx() to a Fabric Eventhouse) as a specific identity. Has no effect on alerts that already declare an identity in the YAML, on custom\_log\_alerts, or when left empty. | `list(string)` | `[]` | no |
 | <a name="input_defaults_override"></a> [defaults\_override](#input\_defaults\_override) | Map of profile\_name → JSON string from the gkvm provider data source (gkvm\_monitoring\_profiles). This is the sole source of default alert profiles. Each JSON string must contain {metric\_alerts: {...}, log\_alerts: {...}}. | `map(string)` | `{}` | no |

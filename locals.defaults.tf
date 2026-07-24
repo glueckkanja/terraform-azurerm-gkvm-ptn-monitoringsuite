@@ -13,12 +13,21 @@
 #   log_alerts:
 #     <rule_key>:
 #       name, description, severity, time_window, frequency
-#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth} substituted here (plan-time safe);
+#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth}, ${data_lake_deletion_exclusion_predicate} substituted here (plan-time safe);
 #                       ${adx_cluster_uri}, ${fabric_capacity_id}, ${fabric_workspace_id} deferred to resource level (may be apply-time unknown)
 #       trigger: { operator, threshold, metric_trigger_type? }
 #       time_aggregation_method, metric_measure_column?, dimensions?, identity?
 #   (action_group_ids is injected at merge time from var.default_alert_rules_configuration)
 # ---------------------------------------------------------------------------
+
+locals {
+  _data_lake_deletion_predicate = length(var.data_lake_deletion_exclusions) == 0 ? "false" : join(" or ", [
+    for ex in var.data_lake_deletion_exclusions : format(
+      "(ObjectKey has_any (dynamic(%s)) and (array_length(dynamic(%s)) == 0 or RequesterObjectId in (dynamic(%s))))",
+      jsonencode(ex.paths), jsonencode(ex.object_ids), jsonencode(ex.object_ids),
+    )
+  ])
+}
 
 locals {
   # -------------------------------------------------------------------------
@@ -37,11 +46,12 @@ locals {
       log_alerts = {
         for rule_key, rule in try(data.log_alerts, {}) : rule_key => merge(rule, {
           query_template = try(
-            replace(replace(replace(
+            replace(replace(replace(replace(
               rule.query_template,
               "$${primary_scope}", local.primary_scope),
               "$${remote_ip}", var.remote_ip),
-            "$${bandwidth}", tostring(var.bandwidth)),
+              "$${bandwidth}", tostring(var.bandwidth)),
+            "$${data_lake_deletion_exclusion_predicate}", local._data_lake_deletion_predicate),
             try(rule.query_template, "")
           )
         })
