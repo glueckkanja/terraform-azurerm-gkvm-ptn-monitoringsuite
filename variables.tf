@@ -404,6 +404,25 @@ variable "fabric_workspace_id" {
   description = "Fabric workspace ID substituted into query templates via the $${fabric_workspace_id} placeholder. Required when using an alert profile that references a specific Fabric workspace."
 }
 
+variable "data_lake_deletion_exclusions" {
+  type = list(object({
+    paths      = list(string)
+    object_ids = optional(list(string), [])
+  }))
+  default     = []
+  description = "Exclusion rules for the data_lake container-deletion and directory-deletion alerts. A deletion is suppressed if it matches any rule: its StorageBlobLogs ObjectKey contains one of paths (has_any) AND, when object_ids is set, its RequesterObjectId is one of object_ids (e.g. the Databricks Access Connector managed identity). object_ids only narrows a path scope. Empty default = no exclusion."
+
+  validation {
+    condition     = alltrue([for ex in var.data_lake_deletion_exclusions : length(ex.paths) > 0])
+    error_message = "Each data_lake_deletion_exclusions entry must list at least one path (object_ids alone suppress nothing)."
+  }
+
+  validation {
+    condition     = alltrue([for ex in var.data_lake_deletion_exclusions : alltrue([for p in ex.paths : trimspace(p) != ""])])
+    error_message = "Path entries must not be empty or whitespace-only. An empty path in has_any can match all rows, silently suppressing all deletion alerts."
+  }
+}
+
 variable "default_log_alert_identity_ids" {
   type        = list(string)
   default     = []
