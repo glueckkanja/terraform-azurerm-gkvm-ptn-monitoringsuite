@@ -1,9 +1,10 @@
 # ---------------------------------------------------------------------------
 # Health alerts — Service Health and Resource Health activity log alerts
 #
-# One alert per unique subscription extracted from var.scopes. All action
-# groups (external + module-created) receive notifications; activity log
-# alerts have no severity dimension so severity routing does not apply.
+# One alert per unique subscription extracted from var.scopes. Activity log
+# alerts fire with a fixed Sev4 in the common alert schema, so they route
+# through severity routing as Sev4: only action groups (external or
+# module-created) whose severities include 4 receive notifications.
 # ---------------------------------------------------------------------------
 
 resource "azurerm_monitor_activity_log_alert" "service_health" {
