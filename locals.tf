@@ -30,9 +30,15 @@ locals {
 
   all_action_groups = concat(var.action_group_routing, local.created_action_groups)
 
-  # Flat list of every action group ID, severity ignored — activity log alerts
-  # (health alerts) do not carry a severity dimension so they notify all groups.
-  health_alert_action_group_ids = distinct([for ag in local.all_action_groups : ag.action_group_id])
+  # Activity log alerts carry no configurable severity, but Azure stamps them
+  # fixed Sev4 in the common alert schema — route them like any other Sev4
+  # alert so severity routing stays authoritative (e.g. a Sev0-only PagerDuty
+  # group must not be paged by health events).
+  health_alert_action_group_ids = distinct([
+    for ag in local.all_action_groups :
+    ag.action_group_id
+    if contains(ag.severities, 4)
+  ])
 }
 
 # ---------------------------------------------------------------------------

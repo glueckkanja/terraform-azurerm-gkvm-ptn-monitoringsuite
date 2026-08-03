@@ -313,7 +313,7 @@ variable "health_alerts" {
     }), {})
   })
   default     = {}
-  description = "Service Health and Resource Health activity log alerts. One alert is created per unique subscription extracted from var.scopes. All action groups (external and module-created) receive notifications; severity routing does not apply to activity log alerts. Set service_health.enabled or resource_health.enabled to true to deploy. Field mapping: service_health.events/locations/services → criteria.service_health block; resource_health.current/previous/reason → criteria.resource_health block."
+  description = "Service Health and Resource Health activity log alerts. One alert is created per unique subscription extracted from var.scopes. Activity log alerts fire with a fixed Sev4 in the common alert schema and route through severity routing accordingly: only action groups (external and module-created) whose severities include 4 receive notifications. Set service_health.enabled or resource_health.enabled to true to deploy. Field mapping: service_health.events/locations/services → criteria.service_health block; resource_health.current/previous/reason → criteria.resource_health block."
 
   validation {
     condition = alltrue([

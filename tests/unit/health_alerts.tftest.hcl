@@ -75,7 +75,7 @@ run "service_health_enabled_creates_one_per_subscription" {
   }
 }
 
-run "resource_health_enabled_creates_alert_with_levels" {
+run "resource_health_enabled_creates_alert_with_filters" {
   command = plan
 
   variables {
@@ -84,7 +84,6 @@ run "resource_health_enabled_creates_alert_with_levels" {
     health_alerts = {
       resource_health = {
         enabled = true
-        levels  = ["Critical", "Error"]
         current = ["Degraded", "Unavailable"]
       }
     }
@@ -146,6 +145,68 @@ run "statuses_filter_is_applied" {
   assert {
     condition     = contains(tolist(azurerm_monitor_activity_log_alert.resource_health["/subscriptions/00000000-0000-0000-0000-000000000000"].criteria[0].statuses), "Active")
     error_message = "statuses filter must be propagated to criteria.statuses."
+  }
+}
+
+run "only_sev4_action_groups_are_attached" {
+  command = plan
+
+  variables {
+    naming_configuration = run.setup.naming_configuration
+
+    action_group_routing = [
+      {
+        action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Insights/actionGroups/ag-pagerduty-sev0"
+        severities      = [0]
+      },
+      {
+        action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Insights/actionGroups/ag-tickets"
+        severities      = [1, 2, 3, 4]
+      },
+    ]
+
+    health_alerts = {
+      service_health  = { enabled = true }
+      resource_health = { enabled = true }
+    }
+  }
+
+  assert {
+    condition = toset([for a in azurerm_monitor_activity_log_alert.service_health["/subscriptions/00000000-0000-0000-0000-000000000000"].action : a.action_group_id]) == toset([
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Insights/actionGroups/ag-tickets"
+    ])
+    error_message = "Service health alerts must attach exactly the action groups whose severities include 4 (health alerts are fixed Sev4)."
+  }
+
+  assert {
+    condition = toset([for a in azurerm_monitor_activity_log_alert.resource_health["/subscriptions/00000000-0000-0000-0000-000000000000"].action : a.action_group_id]) == toset([
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Insights/actionGroups/ag-tickets"
+    ])
+    error_message = "Resource health alerts must attach exactly the action groups whose severities include 4 (health alerts are fixed Sev4)."
+  }
+}
+
+run "no_sev4_action_group_leaves_health_alerts_without_actions" {
+  command = plan
+
+  variables {
+    naming_configuration = run.setup.naming_configuration
+
+    action_group_routing = [
+      {
+        action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Insights/actionGroups/ag-pagerduty-sev0"
+        severities      = [0]
+      },
+    ]
+
+    health_alerts = {
+      service_health = { enabled = true }
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_activity_log_alert.service_health["/subscriptions/00000000-0000-0000-0000-000000000000"].action) == 0
+    error_message = "A Sev0-only action group must not be attached to health alerts."
   }
 }
 
