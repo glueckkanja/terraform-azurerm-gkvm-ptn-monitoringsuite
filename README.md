@@ -345,9 +345,9 @@ If the storage account has blob soft delete, container soft delete, or versionin
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | 4.81.0 |
-| <a name="provider_modtm"></a> [modtm](#provider\_modtm) | 0.4.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 4.68.0, < 5.0 |
+| <a name="provider_modtm"></a> [modtm](#provider\_modtm) | >= 0.3.5, < 1.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1, < 4.0 |
 
 ## Resources
 
