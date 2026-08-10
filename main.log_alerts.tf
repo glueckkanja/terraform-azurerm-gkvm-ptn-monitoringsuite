@@ -97,10 +97,10 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   }
 
   action {
-    action_groups = each.value.action_group_ids != null ? each.value.action_group_ids : [
+    action_groups = coalesce(each.value.action_group_ids, [
       for ag in local.all_action_groups : ag.action_group_id
       if contains(ag.severities, tonumber(each.value.severity))
-    ]
+    ])
   }
 
   tags = var.tags
@@ -162,10 +162,10 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
   }
 
   action {
-    action_group = each.value.action_group_ids != null ? each.value.action_group_ids : [
+    action_group = coalesce(each.value.action_group_ids, [
       for ag in local.all_action_groups : ag.action_group_id
       if contains(ag.severities, tonumber(each.value.severity))
-    ]
+    ])
   }
 
   tags = var.tags
