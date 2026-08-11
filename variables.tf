@@ -415,7 +415,7 @@ variable "namespace" {
   }
 
   validation {
-    condition     = var.namespace == null || contains(["kubernetes_workload"], coalesce(var.alert_profile, ""))
+    condition     = var.namespace == null || var.alert_profile == "kubernetes_workload"
     error_message = "namespace is only valid when alert_profile = \"kubernetes_workload\"."
   }
 }
