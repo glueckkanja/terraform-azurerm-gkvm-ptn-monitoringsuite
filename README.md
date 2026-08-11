@@ -252,6 +252,7 @@ The module substitutes them at plan time:
 | `${remote_ip}` | `var.remote_ip` | Remote IP for VPN tunnel monitoring |
 | `${bandwidth}` | `var.bandwidth` | Bandwidth threshold in bytes |
 | `${data_lake_deletion_exclusion_predicate}` | `var.data_lake_deletion_exclusions` (generated) | Generated KQL predicate that excludes known-expected deletions from the data lake deletion alerts |
+| `${namespace_filter}` | `var.namespace` (generated) | Generated KQL predicate that scopes `kubernetes_workload` log alerts to a single Kubernetes namespace; renders to `true` (cluster-wide) when `var.namespace` is unset |
 
 These placeholders apply only to default profiles served by `var.defaults_override`.
 Custom log alerts (`var.custom_log_alerts`) use `%%SCOPE%%` as a scope placeholder in their `query` field.
@@ -299,6 +300,33 @@ The first rule suppresses any deletion whose `ObjectKey` contains `staging_db`, 
 #### Recoverability
 
 If the storage account has blob soft delete, container soft delete, or versioning enabled, deleted data remains recoverable within the retention period. Treat these alerts as notices requiring investigation rather than emergencies in that case.
+
+### Namespace-scoped kubernetes_workload alerts
+
+The `kubernetes_workload` profile's log alerts (pod CrashLoopBackOff, OOMKilled, unavailable deployments, pending pods) are cluster-wide by default. Set `var.namespace` to scope them to one Kubernetes namespace instead — the module folds the namespace into the generated `${namespace_filter}` KQL predicate, the alert name (so instances don't collide), and the description (so PagerDuty incident titles identify the namespace).
+
+`namespace` is only accepted when `alert_profile = "kubernetes_workload"` — setting it on any other profile fails at plan time, since namespace scoping has no meaning outside a container context.
+
+To monitor several namespaces, deploy one module instance per namespace with `for_each`:
+
+```hcl
+locals {
+  monitored_namespaces = ["team-a", "team-b"]
+}
+
+module "aks_namespace_alerts" {
+  source   = "glueckkanja/gkvm-ptn-monitoringsuite/azurerm"
+  for_each = toset(local.monitored_namespaces)
+
+  scopes        = [azurerm_kubernetes_cluster.this.id]
+  alert_profile = "kubernetes_workload"
+  namespace     = each.key
+
+  # ... location, resource_group_name, naming_configuration, etc.
+}
+```
+
+Each instance creates its own set of log alert rules — four scheduled query rules per namespace — so cost scales linearly with namespace count.
 
 ## Severity levels
 
@@ -396,6 +424,7 @@ If the storage account has blob soft delete, container soft delete, or versionin
 | <a name="input_name_suffixes"></a> [name\_suffixes](#input\_name\_suffixes) | Name suffixes for resource naming. | `list(string)` | `[]` | no |
 | <a name="input_naming_configuration"></a> [naming\_configuration](#input\_naming\_configuration) | Standesamt naming configuration object. Obtained from the standesamt\_config data source. | `any` | n/a | yes |
 | <a name="input_naming_configuration_custom"></a> [naming\_configuration\_custom](#input\_naming\_configuration\_custom) | Optional standesamt naming configuration produced by a standesamt\_config data source whose provider loads a custom schema (custom\_url). Supplies naming for resource types absent from the azure/caf library (e.g. azurerm\_monitor\_alert\_processing\_rule\_suppression). Its schema entries are merged under var.naming\_configuration; the normal naming schema wins on conflict. | `any` | `null` | no |
+| <a name="input_namespace"></a> [namespace](#input\_namespace) | Kubernetes namespace to scope kubernetes\_workload log alerts to, via the ${namespace\_filter} placeholder. Leave null for cluster-wide alerts. Only valid with alert\_profile = "kubernetes\_workload". | `string` | `null` | no |
 | <a name="input_pagerduty_config"></a> [pagerduty\_config](#input\_pagerduty\_config) | PagerDuty endpoint catalog. When a webhook\_receiver sets pagerduty\_key, the receiver's service\_uri is set to pagerduty\_config[pagerduty\_key].webhook and its name is set to 'PagerDuty <name>'. Marked sensitive to prevent webhook URLs from appearing in plan output. | <pre>map(object({<br/>    name    = string<br/>    webhook = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_remote_ip"></a> [remote\_ip](#input\_remote\_ip) | Remote IP address for VPN tunnel monitoring. Used by virtual\_network\_gateway alert profile. | `string` | `""` | no |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Resource group where alert resources will be created. | `string` | n/a | yes |

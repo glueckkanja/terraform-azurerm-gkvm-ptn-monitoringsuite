@@ -404,6 +404,22 @@ variable "fabric_workspace_id" {
   description = "Fabric workspace ID substituted into query templates via the $${fabric_workspace_id} placeholder. Required when using an alert profile that references a specific Fabric workspace."
 }
 
+variable "namespace" {
+  type        = string
+  default     = null
+  description = "Kubernetes namespace to scope kubernetes_workload log alerts to, via the $${namespace_filter} placeholder. Leave null for cluster-wide alerts. Only valid with alert_profile = \"kubernetes_workload\"."
+
+  validation {
+    condition     = var.namespace == null || can(regex("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$", var.namespace))
+    error_message = "namespace must be a valid Kubernetes namespace name (RFC 1123 label: lowercase alphanumeric and '-', max 63 chars)."
+  }
+
+  validation {
+    condition     = var.namespace == null || contains(["kubernetes_workload"], coalesce(var.alert_profile, ""))
+    error_message = "namespace is only valid when alert_profile = \"kubernetes_workload\"."
+  }
+}
+
 variable "data_lake_deletion_exclusions" {
   type = list(object({
     paths      = list(string)

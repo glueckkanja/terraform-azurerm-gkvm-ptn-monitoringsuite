@@ -13,7 +13,15 @@ locals {
   # Prefix folded into every alert description so PagerDuty incident titles
   # (which use the description) are customer-identifiable under the
   # one-service-per-solution model. Empty name_prefixes => no prefix.
-  description_prefix = length(var.name_prefixes) > 0 ? format("[%s] ", split("-", var.name_prefixes[0])[0]) : ""
+  description_prefix = format(
+    "%s%s",
+    length(var.name_prefixes) > 0 ? format("[%s] ", split("-", var.name_prefixes[0])[0]) : "",
+    var.namespace != null ? format("[ns/%s] ", var.namespace) : "",
+  )
+
+  # Namespace folded into default alert names so per-namespace module instances
+  # (one kubernetes_workload deployment per namespace) coexist in one resource group.
+  namespace_suffixes = var.namespace == null ? [] : [var.namespace]
 }
 
 # ---------------------------------------------------------------------------
@@ -134,7 +142,7 @@ locals {
       location        = var.location
       environment     = var.environment
       prefixes        = var.name_prefixes
-      suffixes        = concat(var.name_suffixes, [format("sev%s", config.severity)])
+      suffixes        = concat(var.name_suffixes, local.namespace_suffixes, [format("sev%s", config.severity)])
       name_precedence = var.name_precedence
       hash_length     = var.hash_length
     }, config.name)
@@ -146,7 +154,7 @@ locals {
       location        = var.location
       environment     = var.environment
       prefixes        = var.name_prefixes
-      suffixes        = concat(var.name_suffixes, [format("sev%s", config.severity)])
+      suffixes        = concat(var.name_suffixes, local.namespace_suffixes, [format("sev%s", config.severity)])
       name_precedence = var.name_precedence
       hash_length     = var.hash_length
     }, config.name)

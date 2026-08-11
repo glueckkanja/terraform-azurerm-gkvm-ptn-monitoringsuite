@@ -7,6 +7,18 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Namespace scoping for kubernetes_workload alerts** — new `namespace` variable scopes the
+  `kubernetes_workload` profile's log alerts (pod CrashLoopBackOff, OOMKilled, unavailable
+  deployments, pending pods) to a single Kubernetes namespace instead of cluster-wide, via a
+  generated `${namespace_filter}` KQL predicate. Only valid with `alert_profile =
+  "kubernetes_workload"` — rejected at plan time on any other profile. The namespace is also
+  folded into the alert name and description so multiple per-namespace module instances can
+  coexist in one resource group.
+
 ## [0.2.0] - 2026-04-24
 
 ### Added

@@ -13,7 +13,7 @@
 #   log_alerts:
 #     <rule_key>:
 #       name, description, severity, time_window, frequency
-#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth}, ${data_lake_deletion_exclusion_predicate} substituted here (plan-time safe);
+#       query_template: KQL with ${primary_scope}, ${remote_ip}, ${bandwidth}, ${data_lake_deletion_exclusion_predicate}, ${namespace_filter} substituted here (plan-time safe);
 #                       ${adx_cluster_uri}, ${fabric_capacity_id}, ${fabric_workspace_id} deferred to resource level (may be apply-time unknown)
 #       trigger: { operator, threshold, metric_trigger_type? }
 #       time_aggregation_method, metric_measure_column?, dimensions?, identity?
@@ -27,6 +27,9 @@ locals {
       jsonencode(ex.paths), jsonencode(ex.object_ids), jsonencode(ex.object_ids),
     )
   ])
+
+  # KQL predicate for namespace scoping. Unset => "true" (cluster-wide, no filtering).
+  _namespace_filter = var.namespace == null ? "true" : format("Namespace =~ \"%s\"", var.namespace)
 }
 
 locals {
@@ -46,12 +49,13 @@ locals {
       log_alerts = {
         for rule_key, rule in try(data.log_alerts, {}) : rule_key => merge(rule, {
           query_template = try(
-            replace(replace(replace(replace(
+            replace(replace(replace(replace(replace(
               rule.query_template,
               "$${primary_scope}", local.primary_scope),
               "$${remote_ip}", var.remote_ip),
               "$${bandwidth}", tostring(var.bandwidth)),
-            "$${data_lake_deletion_exclusion_predicate}", local._data_lake_deletion_predicate),
+              "$${data_lake_deletion_exclusion_predicate}", local._data_lake_deletion_predicate),
+            "$${namespace_filter}", local._namespace_filter),
             try(rule.query_template, "")
           )
         })
