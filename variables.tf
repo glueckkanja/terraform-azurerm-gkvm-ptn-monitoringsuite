@@ -386,6 +386,22 @@ variable "bandwidth" {
   description = "Bandwidth threshold in bytes for VPN/ExpressRoute gateway monitoring."
 }
 
+variable "namespace" {
+  type        = string
+  default     = null
+  description = "Optional Kubernetes namespace filter for the kubernetes_workload alert profile. When set, default KQL templates use Namespace =~ <value>; when unset, behavior remains cluster-wide."
+
+  validation {
+    condition     = var.namespace == null || can(regex("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$", var.namespace))
+    error_message = "namespace must match RFC 1123 label format (lowercase alphanumeric and '-', length 1-63)."
+  }
+
+  validation {
+    condition     = var.namespace == null || contains(["kubernetes_workload"], coalesce(var.alert_profile, ""))
+    error_message = "namespace is only supported when alert_profile is kubernetes_workload."
+  }
+}
+
 variable "adx_cluster_uri" {
   type        = string
   default     = ""

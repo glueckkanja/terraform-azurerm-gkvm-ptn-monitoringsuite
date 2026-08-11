@@ -2,6 +2,8 @@ locals {
   # Primary scope for query formatting (first entry in scopes list)
   primary_scope = var.scopes[0]
 
+  _namespace_suffixes = var.namespace == null ? [] : [var.namespace]
+
   # Unique subscription-scope IDs extracted from var.scopes. Used as for_each
   # key for health alerts so two scopes in the same subscription collapse to
   # one alert per category.
@@ -13,7 +15,11 @@ locals {
   # Prefix folded into every alert description so PagerDuty incident titles
   # (which use the description) are customer-identifiable under the
   # one-service-per-solution model. Empty name_prefixes => no prefix.
-  description_prefix = length(var.name_prefixes) > 0 ? format("[%s] ", split("-", var.name_prefixes[0])[0]) : ""
+  _description_prefix_parts = concat(
+    length(var.name_prefixes) > 0 ? [format("[%s]", split("-", var.name_prefixes[0])[0])] : [],
+    var.namespace != null ? [format("[ns/%s]", var.namespace)] : []
+  )
+  description_prefix = length(local._description_prefix_parts) > 0 ? format("%s ", join(" ", local._description_prefix_parts)) : ""
 }
 
 # ---------------------------------------------------------------------------
@@ -134,7 +140,7 @@ locals {
       location        = var.location
       environment     = var.environment
       prefixes        = var.name_prefixes
-      suffixes        = concat(var.name_suffixes, [format("sev%s", config.severity)])
+      suffixes        = concat(var.name_suffixes, local._namespace_suffixes, [format("sev%s", config.severity)])
       name_precedence = var.name_precedence
       hash_length     = var.hash_length
     }, config.name)
@@ -146,7 +152,7 @@ locals {
       location        = var.location
       environment     = var.environment
       prefixes        = var.name_prefixes
-      suffixes        = concat(var.name_suffixes, [format("sev%s", config.severity)])
+      suffixes        = concat(var.name_suffixes, local._namespace_suffixes, [format("sev%s", config.severity)])
       name_precedence = var.name_precedence
       hash_length     = var.hash_length
     }, config.name)

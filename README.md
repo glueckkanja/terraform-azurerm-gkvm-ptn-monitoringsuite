@@ -55,6 +55,48 @@ module "firewall_monitoring" {
 }
 ```
 
+### Kubernetes workload namespace scoping
+
+The `kubernetes_workload` default profile can be scoped to one namespace via
+`namespace`. If unset, behavior remains cluster-wide.
+
+```hcl
+locals {
+  monitored_namespaces = toset(["team-a", "team-b"])
+}
+
+module "aks_workload_monitoring" {
+  for_each = local.monitored_namespaces
+
+  source = "glueckkanja/gkvm-ptn-monitoringsuite/azurerm"
+
+  scopes               = [azurerm_kubernetes_cluster.this.id]
+  alert_profile        = "kubernetes_workload"
+  namespace            = each.value
+  apply_default_rules  = true
+  location             = azurerm_resource_group.monitoring.location
+  resource_group_name  = azurerm_resource_group.monitoring.name
+
+  action_group_routing = [
+    {
+      action_group_id = azurerm_monitor_action_group.ops.id
+      severities      = [0, 1, 2, 3, 4]
+    }
+  ]
+
+  log_analytics_workspace_id       = azurerm_log_analytics_workspace.this.id
+  log_analytics_workspace_location = azurerm_log_analytics_workspace.this.location
+
+  naming_configuration = data.standesamt_config.this.configuration
+  convention           = "default"
+  environment          = "prod"
+}
+```
+
+Cost note: `kubernetes_workload` currently ships 4 log alerts. Deploying the
+module per namespace scales rule count and scheduled-query alert cost linearly
+with namespace count.
+
 ### Appzone opt-in behavior
 
 Unlike other profiles where all defaults are enabled (opt-out via `disable_rule`), the **appzone** profile uses **opt-in**: only rules explicitly present in `default_alert_rules_configuration` are created. This allows selective monitoring across a diverse application zone.
@@ -251,6 +293,7 @@ The module substitutes them at plan time:
 | `${fabric_workspace_id}` | `var.fabric_workspace_id` | Fabric workspace ID for workspace-scoped Fabric alerts |
 | `${remote_ip}` | `var.remote_ip` | Remote IP for VPN tunnel monitoring |
 | `${bandwidth}` | `var.bandwidth` | Bandwidth threshold in bytes |
+| `${namespace_filter}` | `var.namespace` (generated) | Namespace predicate used by `kubernetes_workload` defaults; renders to `Namespace =~ "<namespace>"` when set, otherwise `true` |
 | `${data_lake_deletion_exclusion_predicate}` | `var.data_lake_deletion_exclusions` (generated) | Generated KQL predicate that excludes known-expected deletions from the data lake deletion alerts |
 
 These placeholders apply only to default profiles served by `var.defaults_override`.

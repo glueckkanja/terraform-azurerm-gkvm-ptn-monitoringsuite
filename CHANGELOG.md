@@ -7,6 +7,16 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Namespace scoping for `kubernetes_workload`** — optional `namespace` input now scopes
+  the profile's default Container Insights queries to a single Kubernetes namespace.
+  When unset, behavior remains cluster-wide. Names of log-alert resources include the
+  namespace suffix for collision-free per-namespace deployments, and alert descriptions
+  include `[ns/<namespace>]` to improve incident routing context.
+
 ## [0.2.0] - 2026-04-24
 
 ### Added
