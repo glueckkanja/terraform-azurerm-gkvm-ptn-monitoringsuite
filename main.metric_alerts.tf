@@ -36,7 +36,7 @@ resource "azurerm_monitor_metric_alert" "this" {
   }
 
   dynamic "action" {
-    for_each = coalesce(each.value.action_group_ids, [
+    for_each = each.value.action_group_ids != null ? tolist(each.value.action_group_ids) : tolist([
       for ag in local.all_action_groups : ag.action_group_id
       if contains(ag.severities, tonumber(each.value.severity))
     ])

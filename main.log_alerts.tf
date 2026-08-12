@@ -39,7 +39,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   severity             = each.value.severity
 
   mute_actions_after_alert_duration = try(each.value.mute_actions_after_alert_duration, null)
-  auto_mitigation_enabled           = try(each.value.auto_mitigation_enabled, true)
+  auto_mitigation_enabled           = coalesce(try(each.value.auto_mitigation_enabled, true), true)
 
   criteria {
     query = replace(replace(replace(
@@ -97,7 +97,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   }
 
   action {
-    action_groups = coalesce(each.value.action_group_ids, [
+    action_groups = each.value.action_group_ids != null ? tolist(each.value.action_group_ids) : tolist([
       for ag in local.all_action_groups : ag.action_group_id
       if contains(ag.severities, tonumber(each.value.severity))
     ])
@@ -135,7 +135,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
   time_window = local._duration_to_minutes[each.key].time_window
   severity    = each.value.severity
 
-  auto_mitigation_enabled = try(each.value.auto_mitigation_enabled, true)
+  auto_mitigation_enabled = coalesce(try(each.value.auto_mitigation_enabled, true), true)
 
   query = replace(replace(replace(
     each.value.query,
@@ -162,7 +162,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
   }
 
   action {
-    action_group = coalesce(each.value.action_group_ids, [
+    action_group = each.value.action_group_ids != null ? tolist(each.value.action_group_ids) : tolist([
       for ag in local.all_action_groups : ag.action_group_id
       if contains(ag.severities, tonumber(each.value.severity))
     ])
