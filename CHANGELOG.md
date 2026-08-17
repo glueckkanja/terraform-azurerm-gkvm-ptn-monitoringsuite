@@ -9,6 +9,8 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-17
+
 ### Added
 
 - **Namespace scoping for kubernetes_workload alerts** — new `namespace` variable scopes the
@@ -18,6 +20,92 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   "kubernetes_workload"` — rejected at plan time on any other profile. The namespace is also
   folded into the alert name and description so multiple per-namespace module instances can
   coexist in one resource group.
+
+### Fixed
+
+- **Severity routing with null `action_group_ids`** — replaced conditional ternary expressions
+  with `coalesce()` in metric alert and log alert (v1/v2) action routing to prevent a plan-time
+  `Inconsistent conditional result types` error when default-rule loading propagates
+  `action_group_ids = null` into merged alert maps. `null` still falls back to severity-based
+  routing, `[]` still means explicit no-notification, and an explicit list still overrides
+  per-alert — only the plan-time crash is fixed.
+
+## [0.6.1] - 2026-08-03
+
+### Fixed
+
+- **Health alerts now respect severity routing** — Service Health and Resource Health activity
+  log alerts previously notified every configured action group, ignoring severity. Azure stamps
+  activity log alerts with a fixed `Sev4` in the common alert schema, so `health_alert_action_group_ids`
+  now includes only action groups whose `severities` contain `4` (both external and
+  module-created groups).
+
+### Changed
+
+- **Breaking change** — action groups without `4` in `severities` no longer receive health alert
+  notifications. Add `4` to any group that should retain them — typically ticket or email groups,
+  not on-call paging groups.
+
+## [0.6.0] - 2026-07-27
+
+### Added
+
+- **`data_lake_deletion_exclusions`** — a list of `{paths, object_ids}` rules for the
+  `data_lake` profile's deletion alerts, letting customers scope out known-expected ADLS
+  deletions (e.g. a Databricks staging pipeline's create/merge/drop churn) without blinding the
+  alert to real data loss. A deletion is excluded only if its path matches a rule's `paths`
+  **and** (no `object_ids` given, or the caller's `RequesterObjectId` is one of them). The
+  matching KQL predicate is generated at plan time and exposed via a new
+  `${data_lake_deletion_exclusion_predicate}` placeholder in the `query_template` substitution
+  chain. Empty exclusions (the default) resolve to a no-op — zero behavior change for existing
+  customers.
+
+## [0.5.0] - 2026-06-30
+
+### Added
+
+- **PagerDuty-friendly alert descriptions** — every alert description (metric, log v1/v2,
+  service health, resource health) is now prefixed with `[<name_prefixes[0]>]`, so PagerDuty
+  incident titles are customer-identifiable under the one-service-per-solution model. An empty
+  `name_prefixes` produces no change.
+
+## [0.4.0] - 2026-06-05
+
+### Added
+
+- **Alert processing rule suppressions** — new `alert_processing_rule_suppressions` variable
+  creates `azurerm_monitor_alert_processing_rule_suppression` resources with all 11 condition
+  dimensions as dynamic blocks, daily/weekly/monthly schedule recurrence, and scope inheritance
+  from `var.scopes`. Empty `condition = {}` is rejected at plan time. New
+  `alert_processing_rule_suppressions` output; the existing `alert_count` output gains an
+  `alert_processing_rule_suppressions` key and an updated `total`.
+
+## [0.3.0] - 2026-05-11
+
+### Added
+
+- **User-assigned managed identity (UAMI) support for log alerts** — `custom_log_alerts.identity`
+  gained an `identity_ids` field, and a new `default_log_alert_identity_ids` variable injects a
+  UAMI into default-profile log alerts that declare no identity in their YAML. Required for
+  queries that reach outside the bound Log Analytics Workspace (e.g. `adx()` against a Fabric
+  Eventhouse, `workspace()` across subscriptions, `arg()`). Automatic Reader role assignments
+  remain SystemAssigned-only, since UserAssigned identities expose no `principal_id` on the
+  alert resource.
+- **Fabric/ADX query template variables** — `adx_cluster_uri`, `fabric_capacity_id`, and
+  `fabric_workspace_id` (renamed from `eventhouse_uri`) are substituted into query templates via
+  `${adx_cluster_uri}`, `${fabric_capacity_id}`, and `${fabric_workspace_id}` placeholders, for
+  alert profiles that reference a specific ADX/Eventhouse cluster, capacity, or workspace.
+
+### Fixed
+
+- **Incorrect standesamt resource type for log alert v2** — resources were named using
+  `azurerm_monitor_scheduled_query_rules_alert_v2` as the standesamt resource type; both v1
+  and v2 map to the same Azure resource type `azurerm_monitor_scheduled_query_rules_alert`.
+- **Apply-time plan failure from unknown template variables** — `adx_cluster_uri`,
+  `fabric_capacity_id`, and `fabric_workspace_id` may be unknown at plan time (e.g. derived
+  from a UAMI data source), which caused `merged_log_alerts_v2`'s `for_each` key computation
+  to fail when those values were substituted at the map-key level. Substitutions are now
+  deferred to the resource `query` attribute (a value path, not a key path).
 
 ## [0.2.0] - 2026-04-24
 
@@ -56,11 +144,17 @@ of the old activity log alerts (and any resource group managed by it) and the cr
 the new alerts under this module. Activity log alerts operate on the Azure event stream and
 hold no stored state — recreation causes no notification gap and no data loss.
 
----
+## [0.1.1] - 2026-04-22
 
-## [0.1.0] — 2026-04-22
+### Added
 
-### Overview
+- `LICENSE` file.
+
+### Removed
+
+- Usage examples section from `README.md`.
+
+## [0.1.0] - 2026-04-22
 
 First public release of `terraform-azurerm-gkvm-ptn-monitoringsuite` — a GKVM-pattern
 OpenTofu module for Azure Monitor alerting on any scope-based Azure resource.
@@ -69,8 +163,6 @@ The module manages metric alerts, log-based scheduled query alerts (v1 and v2),
 action groups, and the role assignments required for managed-identity log alerts.
 Alert profiles and default rule libraries are served by the companion
 [`glueckkanja/gkvm`](https://registry.terraform.io/providers/glueckkanja/gkvm) provider.
-
----
 
 ### Added
 
@@ -103,7 +195,7 @@ Alert profiles and default rule libraries are served by the companion
 - **`defaults_override`** variable — accepts `data.gkvm_monitoring_profiles.this.profiles`
   from the [`glueckkanja/gkvm`](https://registry.terraform.io/providers/glueckkanja/gkvm)
   provider. Each value is a JSON string containing `metric_alerts` and `log_alerts` maps.
-  See [Provider relationship](#provider-relationship) below.
+  See [gkvm provider integration](#gkvm-provider-integration) below.
 - **`alert_profile`** — selects which profile from the library to activate.
 - **Opt-out model** (all profiles except `appzone`) — all default rules in a profile are
   active unless individually disabled via `default_alert_rules_configuration[key].disable_rule`.
@@ -139,9 +231,7 @@ Alert profiles and default rule libraries are served by the companion
 - `terraform-docs` auto-regenerated on PR branches — contributors do not need the tool
   installed locally.
 
----
-
-### Provider relationship
+#### gkvm provider integration
 
 This module has an **optional but recommended** dependency on the
 [`glueckkanja/gkvm`](https://registry.terraform.io/providers/glueckkanja/gkvm) provider.
@@ -162,7 +252,7 @@ terraform-provider-gkvm
 [`glueckkanja/gkvm-monitoring-defaults`](https://github.com/glueckkanja/gkvm-monitoring-defaults)
 and versioned independently of this module.
 
-#### Minimal wiring
+##### Minimal wiring
 
 ```hcl
 terraform {
@@ -191,7 +281,7 @@ module "monitoring" {
 }
 ```
 
-#### Pinning a specific profile snapshot
+##### Pinning a specific profile snapshot
 
 The `github_ref` attribute in the provider block accepts any branch, tag, or commit SHA.
 Pin to a tag to get reproducible, immutable alert definitions:
