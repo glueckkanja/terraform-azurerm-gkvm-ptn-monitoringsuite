@@ -28,7 +28,7 @@ variables {
   # rule_muted:     mute_actions_after_alert_duration set -> auto-mitigation forced off
   # rule_failing:   failing_periods from the rule library -> rendered into criteria
   defaults_override = {
-    stateful_test = "{\"metric_alerts\":{},\"log_alerts\":{\"rule_stateful\":{\"name\":\"stateful-rule\",\"description\":\"stateful default\",\"severity\":3,\"time_window\":\"PT15M\",\"frequency\":\"PT5M\",\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}},\"rule_muted\":{\"name\":\"muted-rule\",\"description\":\"muted default\",\"severity\":2,\"time_window\":\"PT15M\",\"frequency\":\"PT5M\",\"mute_actions_after_alert_duration\":\"P1D\",\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}},\"rule_failing\":{\"name\":\"failing-periods-rule\",\"description\":\"failing periods default\",\"severity\":3,\"time_window\":\"PT5M\",\"frequency\":\"PT5M\",\"auto_mitigation_enabled\":true,\"failing_periods\":{\"number_of_evaluation_periods\":3,\"minimum_failing_periods_to_trigger_alert\":2},\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}}}}"
+    stateful_test = "{\"metric_alerts\":{},\"log_alerts\":{\"rule_stateful\":{\"name\":\"stateful-rule\",\"description\":\"stateful default\",\"severity\":3,\"time_window\":\"PT15M\",\"frequency\":\"PT5M\",\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}},\"rule_muted\":{\"name\":\"muted-rule\",\"description\":\"muted default\",\"severity\":2,\"time_window\":\"PT15M\",\"frequency\":\"PT5M\",\"mute_actions_after_alert_duration\":\"P1D\",\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}},\"rule_failing\":{\"name\":\"failing-periods-rule\",\"description\":\"failing periods default\",\"severity\":3,\"time_window\":\"PT5M\",\"frequency\":\"PT5M\",\"auto_mitigation_enabled\":true,\"failing_periods\":{\"number_of_evaluation_periods\":3,\"minimum_failing_periods_to_trigger_alert\":2},\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}},\"rule_daily\":{\"name\":\"daily-rule\",\"description\":\"daily digest\",\"severity\":3,\"time_window\":\"P1D\",\"frequency\":\"P1D\",\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}},\"rule_six_hourly\":{\"name\":\"six-hourly-rule\",\"description\":\"quarter-day digest\",\"severity\":3,\"time_window\":\"PT6H\",\"frequency\":\"PT6H\",\"query_template\":\"Heartbeat | count\",\"time_aggregation_method\":\"Count\",\"trigger\":{\"operator\":\"GreaterThan\",\"threshold\":0}}}}"
   }
 
   log_analytics_workspace_id       = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.OperationalInsights/workspaces/law-test"
@@ -123,6 +123,25 @@ run "null_override_fields_fall_back_to_rule_values" {
   assert {
     condition     = azurerm_monitor_scheduled_query_rules_alert_v2.this["rule_stateful"].auto_mitigation_enabled == true
     error_message = "An explicit null auto_mitigation_enabled override must fall back to the stateful default."
+  }
+}
+
+run "frequency_above_12h_disables_auto_mitigation" {
+  command = plan
+
+  variables {
+    naming_configuration = run.setup.naming_configuration
+  }
+
+  # Azure rejects AutoMitigate on rules evaluated less often than every 12 hours.
+  assert {
+    condition     = azurerm_monitor_scheduled_query_rules_alert_v2.this["rule_daily"].auto_mitigation_enabled == false
+    error_message = "A rule with frequency above PT12H must not enable auto-mitigation (Azure limit)."
+  }
+
+  assert {
+    condition     = azurerm_monitor_scheduled_query_rules_alert_v2.this["rule_six_hourly"].auto_mitigation_enabled == true
+    error_message = "A rule at PT6H (the largest azurerm frequency below the limit) must stay stateful."
   }
 }
 

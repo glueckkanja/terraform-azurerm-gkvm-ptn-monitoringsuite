@@ -24,6 +24,9 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - **Auto-mitigation vs. mute guard** — a default log alert that sets
   `mute_actions_after_alert_duration` keeps `auto_mitigation_enabled = false`; azurerm forbids
   combining the two on `azurerm_monitor_scheduled_query_rules_alert_v2`.
+- **Auto-mitigation vs. low-frequency guard** — rules evaluated less often than every 12 hours
+  keep `auto_mitigation_enabled = false`; the Azure API rejects stateful rules above that
+  frequency with a 400 (`Stateful rules can not run in a frequency greater than 12 hours`).
 - **Explicit nulls in `default_alert_rules_configuration` are ignored** — null override fields
   now fall back to the rule's default instead of replacing rule values.
 
