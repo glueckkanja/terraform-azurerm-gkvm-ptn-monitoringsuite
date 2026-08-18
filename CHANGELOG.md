@@ -11,6 +11,18 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [0.7.1] - 2026-08-18
 
+### Changed
+
+- **Stateful default log alerts, now documented** — effective since 0.7.0 (part of the
+  action-routing fix, undocumented there): `auto_mitigation_enabled` defaults to `true` for all
+  default (rule-library) log alerts — one fired alert per episode, auto-resolved when the
+  condition clears, instead of a new alert + notification on every evaluation while the
+  condition holds. This brings them in line with the rest of the module: custom log alerts
+  default to `true` via their typed schema, and metric alerts inherit the azurerm
+  `auto_mitigate` default of `true`. Only rules with `mute_actions_after_alert_duration` and
+  event-based health alerts remain non-stateful. Opt out per rule via
+  `default_alert_rules_configuration.<rule>.auto_mitigation_enabled = false`.
+
 ### Fixed
 
 - **Auto-mitigation vs. mute guard** — a default log alert that sets
@@ -25,15 +37,6 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [0.7.0] - 2026-08-17
 
-### Changed
-
-- *(documented retroactively)* **Default log alerts are stateful** — `auto_mitigation_enabled`
-  now effectively defaults to `true` for all default (rule-library) log alerts: one fired alert
-  per episode, auto-resolved when the condition clears, instead of a new alert + notification on
-  every evaluation while the condition holds. Previously the intended default was silently
-  swallowed (an explicit `null` bypassed the `try()` fallback) and the provider default `false`
-  applied. Opt out per rule via `default_alert_rules_configuration.<rule>.auto_mitigation_enabled = false`.
-
 ### Added
 
 - **Namespace scoping for kubernetes_workload alerts** — new `namespace` variable scopes the
@@ -46,12 +49,12 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- **Severity routing with null `action_group_ids`** — both branches of the routing ternary in
-  metric alert and log alert (v1/v2) action routing are now coerced to `list(string)` via
-  `tolist()`, preventing a plan-time `Inconsistent conditional result types` error when
-  default-rule loading propagates `action_group_ids = null` into merged alert maps. `null` still
-  falls back to severity-based routing, `[]` still means explicit no-notification, and an
-  explicit list still overrides per-alert — only the plan-time crash is fixed.
+- **Severity routing with null `action_group_ids`** — replaced conditional ternary expressions
+  with `coalesce()` in metric alert and log alert (v1/v2) action routing to prevent a plan-time
+  `Inconsistent conditional result types` error when default-rule loading propagates
+  `action_group_ids = null` into merged alert maps. `null` still falls back to severity-based
+  routing, `[]` still means explicit no-notification, and an explicit list still overrides
+  per-alert — only the plan-time crash is fixed.
 
 ## [0.6.1] - 2026-08-03
 
