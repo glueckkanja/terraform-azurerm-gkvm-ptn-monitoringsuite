@@ -55,7 +55,7 @@ variable "apply_default_rules" {
 variable "default_alert_rules_configuration" {
   type        = any
   default     = {}
-  description = "Override individual default alert rules. Keys match default rule names. Supports: disable_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled, action_group_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule)."
+  description = "Override individual default alert rules. Keys match default rule names. Supports: disable_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled (defaults to true — stateful, one alert per episode; mutually exclusive with mute_actions_after_alert_duration, which wins), action_group_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule). Fields set to null are ignored and fall back to the rule's default, so typed consumer objects with optional(..., null) fields are safe to pass through."
 }
 
 # -----------------------------------------------------------------------------

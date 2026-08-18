@@ -92,8 +92,8 @@ locals {
   computed_default_metric_alerts = {
     for alert, cfg in try(local.default_metric_alerts_by_profile[var.alert_profile], {}) : alert => cfg
     if var.apply_default_rules && (
-      (var.alert_profile != "appzone" && try(var.default_alert_rules_configuration[alert].disable_rule, false) != true) ||
-      (var.alert_profile == "appzone" && contains(keys(var.default_alert_rules_configuration), alert))
+      (var.alert_profile != "appzone" && try(local._rule_config[alert].disable_rule, false) != true) ||
+      (var.alert_profile == "appzone" && contains(keys(local._rule_config), alert))
     )
   }
 
@@ -101,8 +101,8 @@ locals {
   apply_default_log_alerts = {
     for alert, config in try(local.default_log_alerts_by_profile[var.alert_profile], {}) : alert => config
     if var.apply_default_rules && (
-      (var.alert_profile != "appzone" && try(var.default_alert_rules_configuration[alert].disable_rule, false) != true) ||
-      (var.alert_profile == "appzone" && contains(keys(var.default_alert_rules_configuration), alert))
+      (var.alert_profile != "appzone" && try(local._rule_config[alert].disable_rule, false) != true) ||
+      (var.alert_profile == "appzone" && contains(keys(local._rule_config), alert))
     )
   }
 }

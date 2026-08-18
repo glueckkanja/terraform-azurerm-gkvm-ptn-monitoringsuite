@@ -39,7 +39,13 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   severity             = each.value.severity
 
   mute_actions_after_alert_duration = try(each.value.mute_actions_after_alert_duration, null)
-  auto_mitigation_enabled           = coalesce(try(each.value.auto_mitigation_enabled, true), true)
+  # azurerm forbids combining mute_actions_after_alert_duration with auto-mitigation;
+  # a rule that opts into muting keeps auto-mitigation off (the provider default).
+  auto_mitigation_enabled = (
+    try(each.value.mute_actions_after_alert_duration, null) != null
+    ? false
+    : coalesce(try(each.value.auto_mitigation_enabled, true), true)
+  )
 
   criteria {
     query = replace(replace(replace(

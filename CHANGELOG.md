@@ -9,7 +9,30 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-18
+
+### Fixed
+
+- **Auto-mitigation vs. mute guard** — a default log alert that sets
+  `mute_actions_after_alert_duration` (currently only the backup_vault retention rule) now keeps
+  `auto_mitigation_enabled = false`. azurerm forbids combining the two on
+  `azurerm_monitor_scheduled_query_rules_alert_v2`; because 0.7.0 defaulted auto-mitigation to
+  `true`, such rules would have failed at plan/apply.
+- **Explicit nulls in `default_alert_rules_configuration` are ignored** — typed consumer objects
+  with `optional(..., null)` fields send explicit nulls for unset override fields; these
+  previously leaked through `lookup()` and replaced rule values (a null `severity` even breaks
+  alert naming at plan time). Null fields now fall back to the rule's default.
+
 ## [0.7.0] - 2026-08-17
+
+### Changed
+
+- *(documented retroactively)* **Default log alerts are stateful** — `auto_mitigation_enabled`
+  now effectively defaults to `true` for all default (rule-library) log alerts: one fired alert
+  per episode, auto-resolved when the condition clears, instead of a new alert + notification on
+  every evaluation while the condition holds. Previously the intended default was silently
+  swallowed (an explicit `null` bypassed the `try()` fallback) and the provider default `false`
+  applied. Opt out per rule via `default_alert_rules_configuration.<rule>.auto_mitigation_enabled = false`.
 
 ### Added
 
@@ -23,12 +46,12 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- **Severity routing with null `action_group_ids`** — replaced conditional ternary expressions
-  with `coalesce()` in metric alert and log alert (v1/v2) action routing to prevent a plan-time
-  `Inconsistent conditional result types` error when default-rule loading propagates
-  `action_group_ids = null` into merged alert maps. `null` still falls back to severity-based
-  routing, `[]` still means explicit no-notification, and an explicit list still overrides
-  per-alert — only the plan-time crash is fixed.
+- **Severity routing with null `action_group_ids`** — both branches of the routing ternary in
+  metric alert and log alert (v1/v2) action routing are now coerced to `list(string)` via
+  `tolist()`, preventing a plan-time `Inconsistent conditional result types` error when
+  default-rule loading propagates `action_group_ids = null` into merged alert maps. `null` still
+  falls back to severity-based routing, `[]` still means explicit no-notification, and an
+  explicit list still overrides per-alert — only the plan-time crash is fixed.
 
 ## [0.6.1] - 2026-08-03
 
