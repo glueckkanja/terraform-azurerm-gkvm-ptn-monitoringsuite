@@ -13,27 +13,19 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- **Stateful default log alerts, now documented** — effective since 0.7.0 (part of the
-  action-routing fix, undocumented there): `auto_mitigation_enabled` defaults to `true` for all
-  default (rule-library) log alerts — one fired alert per episode, auto-resolved when the
-  condition clears, instead of a new alert + notification on every evaluation while the
-  condition holds. This brings them in line with the rest of the module: custom log alerts
-  default to `true` via their typed schema, and metric alerts inherit the azurerm
-  `auto_mitigate` default of `true`. Only rules with `mute_actions_after_alert_duration` and
-  event-based health alerts remain non-stateful. Opt out per rule via
+- **Stateful default log alerts, now documented** — effective since 0.7.0:
+  `auto_mitigation_enabled` defaults to `true` for default log alerts — one fired alert per
+  episode, auto-resolved when the condition clears. Custom log alerts and metric alerts already
+  defaulted to stateful. Opt out per rule via
   `default_alert_rules_configuration.<rule>.auto_mitigation_enabled = false`.
 
 ### Fixed
 
 - **Auto-mitigation vs. mute guard** — a default log alert that sets
-  `mute_actions_after_alert_duration` (currently only the backup_vault retention rule) now keeps
-  `auto_mitigation_enabled = false`. azurerm forbids combining the two on
-  `azurerm_monitor_scheduled_query_rules_alert_v2`; because 0.7.0 defaulted auto-mitigation to
-  `true`, such rules would have failed at plan/apply.
-- **Explicit nulls in `default_alert_rules_configuration` are ignored** — typed consumer objects
-  with `optional(..., null)` fields send explicit nulls for unset override fields; these
-  previously leaked through `lookup()` and replaced rule values (a null `severity` even breaks
-  alert naming at plan time). Null fields now fall back to the rule's default.
+  `mute_actions_after_alert_duration` keeps `auto_mitigation_enabled = false`; azurerm forbids
+  combining the two on `azurerm_monitor_scheduled_query_rules_alert_v2`.
+- **Explicit nulls in `default_alert_rules_configuration` are ignored** — null override fields
+  now fall back to the rule's default instead of replacing rule values.
 
 ## [0.7.0] - 2026-08-17
 
