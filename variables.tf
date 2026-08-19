@@ -53,9 +53,26 @@ variable "apply_default_rules" {
 }
 
 variable "default_alert_rules_configuration" {
-  type        = any
+  # Explicitly typed rather than `any`: an `any`-typed map of mixed-shape objects is
+  # unified by OpenTofu to map(map(string)), which stringifies every field — a bool
+  # `disable_rule = true` arrives as "true" and silently stops matching. The object
+  # schema converts per attribute instead, so each field keeps the type it was written as.
+  # Unrecognised field names are still dropped silently (object conversion is permissive).
+  type = map(object({
+    disable_rule                      = optional(bool, false)
+    name                              = optional(string)
+    severity                          = optional(number)
+    threshold                         = optional(number)
+    window_size                       = optional(string)
+    frequency                         = optional(string)
+    time_aggregation_method           = optional(string)
+    metric_measure_column             = optional(string)
+    mute_actions_after_alert_duration = optional(string)
+    auto_mitigation_enabled           = optional(bool)
+    action_group_ids                  = optional(list(string))
+  }))
   default     = {}
-  description = "Override individual default alert rules. Keys match default rule names. Supports: disable_rule (bool), severity, threshold (for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled, action_group_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule)."
+  description = "Override individual default alert rules. Keys match default rule names. Supported fields: disable_rule (bool), severity (number), threshold (number — for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled (bool, defaults to true — stateful, one alert per episode; forced off when mute_actions_after_alert_duration is set or the rule is evaluated less often than every 12 hours), action_group_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule). Fields set to null and unrecognised field names are ignored and fall back to the rule's default, so typed consumer objects with optional(..., null) fields are safe to pass through."
 }
 
 # -----------------------------------------------------------------------------
