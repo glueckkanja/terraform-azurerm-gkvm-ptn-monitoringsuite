@@ -69,17 +69,17 @@ locals {
   _loaded_metric_alerts = {
     for profile, data in local._provider_defaults_substituted : profile => {
       for rule_key, rule in try(data.metric_alerts, {}) : rule_key => merge(rule, {
-        name             = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "name", rule.name)
-        severity         = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "severity", rule.severity)
-        window_size      = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "window_size", rule.window_size)
-        frequency        = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "frequency", rule.frequency)
-        action_group_ids = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "action_group_ids", null)
+        name             = try(coalesce(var.default_alert_rules_configuration[rule_key].name), rule.name)
+        severity         = try(coalesce(var.default_alert_rules_configuration[rule_key].severity), rule.severity)
+        window_size      = try(coalesce(var.default_alert_rules_configuration[rule_key].window_size), rule.window_size)
+        frequency        = try(coalesce(var.default_alert_rules_configuration[rule_key].frequency), rule.frequency)
+        action_group_ids = try(var.default_alert_rules_configuration[rule_key].action_group_ids, null)
 
         alert_criterias = [
           for c in try(rule.alert_criterias, []) : merge(c, {
             threshold = try(rule.bandwidth_multiplier, null) != null ? (
-              var.bandwidth * lookup(try(var.default_alert_rules_configuration[rule_key], {}), "threshold", c.threshold)
-            ) : lookup(try(var.default_alert_rules_configuration[rule_key], {}), "threshold", c.threshold)
+              var.bandwidth * try(coalesce(var.default_alert_rules_configuration[rule_key].threshold), c.threshold)
+            ) : try(coalesce(var.default_alert_rules_configuration[rule_key].threshold), c.threshold)
           })
         ]
       })
@@ -92,20 +92,20 @@ locals {
   _loaded_log_alerts = {
     for profile, data in local._provider_defaults_substituted : profile => {
       for rule_key, rule in try(data.log_alerts, {}) : rule_key => merge(rule, {
-        name                              = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "name", rule.name)
-        severity                          = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "severity", rule.severity)
-        time_window                       = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "window_size", try(rule.time_window, "PT15M"))
-        frequency                         = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "frequency", try(rule.frequency, "PT5M"))
-        mute_actions_after_alert_duration = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "mute_actions_after_alert_duration", try(rule.mute_actions_after_alert_duration, null))
-        auto_mitigation_enabled           = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "auto_mitigation_enabled", try(rule.auto_mitigation_enabled, null))
-        time_aggregation_method           = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "time_aggregation_method", try(rule.time_aggregation_method, "Count"))
-        metric_measure_column             = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "metric_measure_column", try(rule.metric_measure_column, null))
-        action_group_ids                  = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "action_group_ids", null)
+        name                              = try(coalesce(var.default_alert_rules_configuration[rule_key].name), rule.name)
+        severity                          = try(coalesce(var.default_alert_rules_configuration[rule_key].severity), rule.severity)
+        time_window                       = try(coalesce(var.default_alert_rules_configuration[rule_key].window_size), try(rule.time_window, "PT15M"))
+        frequency                         = try(coalesce(var.default_alert_rules_configuration[rule_key].frequency), try(rule.frequency, "PT5M"))
+        mute_actions_after_alert_duration = try(coalesce(var.default_alert_rules_configuration[rule_key].mute_actions_after_alert_duration), try(rule.mute_actions_after_alert_duration, null))
+        auto_mitigation_enabled           = try(coalesce(var.default_alert_rules_configuration[rule_key].auto_mitigation_enabled), try(rule.auto_mitigation_enabled, null))
+        time_aggregation_method           = try(coalesce(var.default_alert_rules_configuration[rule_key].time_aggregation_method), try(rule.time_aggregation_method, "Count"))
+        metric_measure_column             = try(coalesce(var.default_alert_rules_configuration[rule_key].metric_measure_column), try(rule.metric_measure_column, null))
+        action_group_ids                  = try(var.default_alert_rules_configuration[rule_key].action_group_ids, null)
 
         query = try(rule.query_template, try(rule.query, ""))
 
         trigger = merge(try(rule.trigger, {}), {
-          threshold = lookup(try(var.default_alert_rules_configuration[rule_key], {}), "threshold", try(rule.trigger.threshold, 0))
+          threshold = try(coalesce(var.default_alert_rules_configuration[rule_key].threshold), try(rule.trigger.threshold, 0))
         })
 
         # YAML-only: keeps for_each keys plan-time stable; UAMI injection happens in _log_alert_injected_identity.
