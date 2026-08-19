@@ -9,28 +9,42 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.7.1] - 2026-08-18
-
-### Fixed
-
-- **`disable_rule` ignored when overrides arrive stringified** — `default_alert_rules_configuration`
-  was typed `any`. A map whose entries have different shapes (one rule overriding only `name`,
-  another only `disable_rule`) is unified by OpenTofu to `map(map(string))`, so `disable_rule = true`
-  reached the module as the string `"true"`. The filter compared it with `!= true`, which is always
-  true for a string, and the rule was never removed — the alert stayed deployed with no indication
-  anything had been ignored. Every other override field was stringified the same way; `severity`,
-  `threshold` and `auto_mitigation_enabled` mostly survived on HCL's implicit coercion, but were
-  equally exposed.
+## [0.7.1] - 2026-08-19
 
 ### Changed
 
-- **`default_alert_rules_configuration` is now explicitly typed** as
-  `map(object({...}))` with `optional()` on every field, replacing `type = any`. OpenTofu converts
-  each attribute individually, so a value keeps the type it was written as regardless of how the
-  consumer's variable plumbing unified the map. Both `true` and `"true"` are accepted for
-  `disable_rule`, and both `3` and `"3"` for `severity`. No input that previously worked stops
-  working: unrecognised field names are still dropped silently, and `action_group_ids = []` still
-  means notify nobody while `null` still falls back to severity routing.
+- **`default_alert_rules_configuration` is now explicitly typed** as `map(object({...}))` with
+  `optional()` on every field, replacing `type = any`. OpenTofu converts each attribute
+  individually, so a value keeps the type it was written as regardless of how the consumer's
+  variable plumbing unified the map. Both `true` and `"true"` are accepted for `disable_rule`,
+  and both `3` and `"3"` for `severity`. No input that previously worked stops working:
+  unrecognised field names are still dropped silently, null fields fall back to the rule's
+  default, and `action_group_ids = []` still means notify nobody while `null` still falls back
+  to severity routing.
+- **Stateful default log alerts, now documented** — effective since 0.7.0:
+  `auto_mitigation_enabled` defaults to `true` for default log alerts — one fired alert per
+  episode, auto-resolved when the condition clears. Custom log alerts and metric alerts already
+  defaulted to stateful. Opt out per rule via
+  `default_alert_rules_configuration.<rule>.auto_mitigation_enabled = false`.
+
+### Fixed
+
+- **`disable_rule` ignored when overrides arrive stringified** — with the variable typed `any`,
+  a map whose entries have different shapes (one rule overriding only `name`, another only
+  `disable_rule`) was unified by OpenTofu to `map(map(string))`, so `disable_rule = true`
+  reached the module as the string `"true"`. The filter compared it with `!= true`, which is
+  always true for a string, and the rule was never removed — the alert stayed deployed with no
+  indication anything had been ignored. Fixed by the explicit variable type above.
+- **Explicit nulls in `default_alert_rules_configuration` override rule values** — typed
+  consumer objects with `optional(..., null)` fields send explicit nulls for unset override
+  fields; these leaked through `lookup()` and replaced rule values (a null `severity` even
+  breaks alert naming at plan time). Null override fields now fall back to the rule's default.
+- **Auto-mitigation vs. mute guard** — a default log alert that sets
+  `mute_actions_after_alert_duration` keeps `auto_mitigation_enabled = false`; azurerm forbids
+  combining the two on `azurerm_monitor_scheduled_query_rules_alert_v2`.
+- **Auto-mitigation vs. low-frequency guard** — rules evaluated less often than every 12 hours
+  keep `auto_mitigation_enabled = false`; the Azure API rejects stateful rules above that
+  frequency with a 400 (`Stateful rules can not run in a frequency greater than 12 hours`).
 
 ## [0.7.0] - 2026-08-17
 

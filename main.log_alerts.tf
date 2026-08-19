@@ -20,6 +20,18 @@ locals {
   } }
 }
 
+locals {
+  # Azure rejects stateful (auto-mitigated) scheduled query rules evaluated less
+  # often than every 12 hours; unparseable frequencies conservatively count as
+  # above the limit so the rule still deploys (stateless).
+  _v2_frequency_minutes = { for key, config in local.merged_log_alerts_v2 : key => (
+    can(regex("^PT(\\d+)M$", config.frequency)) ? tonumber(regex("^PT(\\d+)M$", config.frequency)[0]) :
+    can(regex("^PT(\\d+)H$", config.frequency)) ? tonumber(regex("^PT(\\d+)H$", config.frequency)[0]) * 60 :
+    can(regex("^P(\\d+)D$", config.frequency)) ? tonumber(regex("^P(\\d+)D$", config.frequency)[0]) * 1440 :
+    1441
+  ) }
+}
+
 # ---------------------------------------------------------------------------
 # v2 — Preferred: alerts WITHOUT metric_trigger
 # ---------------------------------------------------------------------------
@@ -39,7 +51,14 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   severity             = each.value.severity
 
   mute_actions_after_alert_duration = try(each.value.mute_actions_after_alert_duration, null)
-  auto_mitigation_enabled           = coalesce(try(each.value.auto_mitigation_enabled, true), true)
+  # azurerm forbids combining mute_actions_after_alert_duration with auto-mitigation,
+  # and Azure rejects auto-mitigation on rules evaluated less often than every 12
+  # hours — both cases keep auto-mitigation off (the provider default).
+  auto_mitigation_enabled = (
+    try(each.value.mute_actions_after_alert_duration, null) != null || local._v2_frequency_minutes[each.key] > 720
+    ? false
+    : coalesce(try(each.value.auto_mitigation_enabled, true), true)
+  )
 
   criteria {
     query = replace(replace(replace(
@@ -135,7 +154,13 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
   time_window = local._duration_to_minutes[each.key].time_window
   severity    = each.value.severity
 
-  auto_mitigation_enabled = coalesce(try(each.value.auto_mitigation_enabled, true), true)
+  # Azure rejects auto-mitigation on rules evaluated less often than every 12 hours;
+  # unparseable frequencies conservatively stay stateless.
+  auto_mitigation_enabled = (
+    try(local._duration_to_minutes[each.key].frequency > 720, true)
+    ? false
+    : coalesce(try(each.value.auto_mitigation_enabled, true), true)
+  )
 
   query = replace(replace(replace(
     each.value.query,
