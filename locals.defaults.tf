@@ -80,6 +80,7 @@ locals {
             threshold = try(rule.bandwidth_multiplier, null) != null ? (
               var.bandwidth * try(coalesce(var.default_alert_rules_configuration[rule_key].threshold), c.threshold)
             ) : try(coalesce(var.default_alert_rules_configuration[rule_key].threshold), c.threshold)
+            dimensions = try(coalesce(var.default_alert_rules_configuration[rule_key].dimensions), try(c.dimensions, null))
           })
         ]
       })
