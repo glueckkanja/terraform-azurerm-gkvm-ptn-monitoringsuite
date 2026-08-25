@@ -9,6 +9,19 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-08-25
+
+### Added
+
+- **Per-rule `target_resource_location` for metric alerts** — a profile rule or a
+  `custom_metric_alerts` entry may carry `target_resource_location`, overriding
+  `var.location` on the `azurerm_monitor_metric_alert`. Required for alerts on global
+  resources such as DNS zones, whose target resource region is `global` regardless of
+  the deployment region. Rules without the field keep the `var.location` fallback.
+- **`dimensions` override in `default_alert_rules_configuration`** — replaces a default
+  metric rule's criteria dimensions, e.g. to split an alert by `Computer` or scope it to
+  specific dimension values. Log alerts and rules without the override are unaffected.
+
 ## [0.7.1] - 2026-08-19
 
 ### Changed

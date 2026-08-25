@@ -70,9 +70,14 @@ variable "default_alert_rules_configuration" {
     mute_actions_after_alert_duration = optional(string)
     auto_mitigation_enabled           = optional(bool)
     action_group_ids                  = optional(list(string))
+    dimensions = optional(list(object({
+      name     = string
+      operator = optional(string, "Include")
+      values   = list(string)
+    })))
   }))
   default     = {}
-  description = "Override individual default alert rules. Keys match default rule names. Supported fields: disable_rule (bool), severity (number), threshold (number — for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled (bool, defaults to true — stateful, one alert per episode; forced off when mute_actions_after_alert_duration is set or the rule is evaluated less often than every 12 hours), action_group_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule). Fields set to null and unrecognised field names are ignored and fall back to the rule's default, so typed consumer objects with optional(..., null) fields are safe to pass through."
+  description = "Override individual default alert rules. Keys match default rule names. Supported fields: disable_rule (bool), severity (number), threshold (number — for bandwidth-based alerts this is a multiplier 0.0-1.0, not absolute), window_size, frequency, name, time_aggregation_method, metric_measure_column, mute_actions_after_alert_duration, auto_mitigation_enabled (bool, defaults to true — stateful, one alert per episode; forced off when mute_actions_after_alert_duration is set or the rule is evaluated less often than every 12 hours), action_group_ids (list of action group resource IDs — when set, bypasses severity-based routing for that rule), dimensions (metric alerts only — replaces the rule's criteria dimensions, e.g. to split by a dimension like Computer or scope the alert to specific dimension values). Fields set to null and unrecognised field names are ignored and fall back to the rule's default, so typed consumer objects with optional(..., null) fields are safe to pass through."
 }
 
 # -----------------------------------------------------------------------------
@@ -134,14 +139,15 @@ variable "custom_log_alerts" {
 
 variable "custom_metric_alerts" {
   type = map(object({
-    name                 = string
-    description          = optional(string, "")
-    severity             = number
-    window_size          = optional(string, "PT15M")
-    frequency            = optional(string, "PT5M")
-    metric_namespace     = string
-    target_resource_type = optional(string)
-    enabled              = optional(bool, true)
+    name                     = string
+    description              = optional(string, "")
+    severity                 = number
+    window_size              = optional(string, "PT15M")
+    frequency                = optional(string, "PT5M")
+    metric_namespace         = string
+    target_resource_type     = optional(string)
+    target_resource_location = optional(string)
+    enabled                  = optional(bool, true)
 
     alert_criterias = list(object({
       metric_name = string
