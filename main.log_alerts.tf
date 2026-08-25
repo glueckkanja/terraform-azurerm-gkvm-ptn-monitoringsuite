@@ -108,7 +108,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
         "SystemAssigned"
       )
       identity_ids = (
-        length(try(each.value.identity.identity_ids, [])) > 0
+        length(coalesce(try(each.value.identity.identity_ids, null), [])) > 0
         ? each.value.identity.identity_ids
         : try(local._log_alert_injected_identity.identity_ids, null)
       )

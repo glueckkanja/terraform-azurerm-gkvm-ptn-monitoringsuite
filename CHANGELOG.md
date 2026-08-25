@@ -9,6 +9,17 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-08-25
+
+### Fixed
+
+- **Profile identity blocks without `identity_ids` no longer fail the plan** — a rule
+  whose YAML identity block carries only `enable`/`type` (e.g. the appzone
+  update-management rule) produced an explicit null `identity_ids`, and the
+  `length()` guard on the log alert identity block rejected it. The guard is
+  null-safe now; behavior for rules with `identity_ids` is unchanged.
+
+
 ## [0.7.2] - 2026-08-25
 
 ### Added
