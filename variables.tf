@@ -585,3 +585,9 @@ variable "alert_processing_rule_suppressions" {
     error_message = "Each condition sub-block operator must be one of: Equals, NotEquals, Contains, DoesNotContain."
   }
 }
+
+variable "log_alert_law_reader" {
+  description = "Grant the log alert managed identities Reader on the log analytics workspace. Defaults to whether log_analytics_workspace_id is set; set explicitly to true when the workspace id can be unknown at plan time (e.g. the workspace is being replaced), so the role assignment for_each keys stay plan-known."
+  type        = bool
+  default     = null
+}
