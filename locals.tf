@@ -1,4 +1,25 @@
 locals {
+  # Whether log alert managed identities get Reader on the workspace.
+  # Shape-driving decisions must not read a possibly-unknown workspace id
+  # (workspace replacement in the same plan): callers that always pass a
+  # workspace set this explicitly and keep the for_each keys plan-known.
+  _law_reader_enabled = coalesce(var.log_alert_law_reader, var.log_analytics_workspace_id != null)
+
+  # Queries with all template variables substituted, resolved only here so
+  # unknown scope values never enter the merged alert maps.
+  _substituted_query = { for key, config in local.all_log_alerts : key =>
+    replace(replace(replace(replace(replace(replace(
+      tostring(try(config.query_template, try(config.query, ""))),
+      "%%SCOPE%%", local.primary_scope),
+      "$${primary_scope}", local.primary_scope),
+      "$${remote_ip}", var.remote_ip),
+      "$${bandwidth}", tostring(var.bandwidth)),
+      "$${data_lake_deletion_exclusion_predicate}", local._data_lake_deletion_predicate),
+      "$${namespace_filter}", local._namespace_filter)
+  }
+}
+
+locals {
   # Primary scope for query formatting (first entry in scopes list)
   primary_scope = var.scopes[0]
 
@@ -82,9 +103,9 @@ locals {
 locals {
   # Format custom log alerts (substitute scope placeholder in queries)
   # Uses replace() instead of format() to avoid % being treated as format directive
-  format_custom_log_alerts = { for alert, config in var.custom_log_alerts : alert => merge(config, {
-    query = replace(config.query, "%%SCOPE%%", local.primary_scope)
-  }) }
+  # %%SCOPE%% is substituted at the resource arguments (_substituted_query) so
+  # a possibly-unknown primary_scope never enters the alert maps.
+  format_custom_log_alerts = var.custom_log_alerts
 
   # Compute which default metric alerts to apply
   # For appzone: opt-in — only rules explicitly present in configuration
@@ -248,7 +269,7 @@ locals {
           alert_key            = query
         }
       ],
-      var.log_analytics_workspace_id != null ? [
+      local._law_reader_enabled ? [
         {
           scope                = var.log_analytics_workspace_id
           role_definition_name = "Reader"
@@ -277,7 +298,7 @@ locals {
           alert_key            = query
         }
       ],
-      var.log_analytics_workspace_id != null ? [
+      local._law_reader_enabled ? [
         {
           scope                = var.log_analytics_workspace_id
           role_definition_name = "Reader"

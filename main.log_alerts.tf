@@ -62,7 +62,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
 
   criteria {
     query = replace(replace(replace(
-      each.value.query,
+      local._substituted_query[each.key],
       "$${adx_cluster_uri}", var.adx_cluster_uri),
       "$${fabric_capacity_id}", var.fabric_capacity_id),
     "$${fabric_workspace_id}", var.fabric_workspace_id)
@@ -163,7 +163,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "this" {
   )
 
   query = replace(replace(replace(
-    each.value.query,
+    local._substituted_query[each.key],
     "$${adx_cluster_uri}", var.adx_cluster_uri),
     "$${fabric_capacity_id}", var.fabric_capacity_id),
   "$${fabric_workspace_id}", var.fabric_workspace_id)

@@ -41,25 +41,15 @@ locals {
     for name, json_str in var.defaults_override : name => jsondecode(json_str)
   }
 
-  # Substitute template variables in provider-served query_template strings
-  # Provider returns raw strings with literal ${primary_scope} etc.
+  # Template variables (${primary_scope} etc.) are substituted at the resource
+  # arguments via local._substituted_query, NOT here: primary_scope can be
+  # unknown at plan time (the scope resource being replaced), and one unknown
+  # value inside these maps collapses every downstream for_each through
+  # try()'s conservative unknown handling.
   _provider_defaults_substituted = {
     for profile, data in local._provider_defaults : profile => {
       metric_alerts = try(data.metric_alerts, {})
-      log_alerts = {
-        for rule_key, rule in try(data.log_alerts, {}) : rule_key => merge(rule, {
-          query_template = try(
-            replace(replace(replace(replace(replace(
-              rule.query_template,
-              "$${primary_scope}", local.primary_scope),
-              "$${remote_ip}", var.remote_ip),
-              "$${bandwidth}", tostring(var.bandwidth)),
-              "$${data_lake_deletion_exclusion_predicate}", local._data_lake_deletion_predicate),
-            "$${namespace_filter}", local._namespace_filter),
-            try(rule.query_template, "")
-          )
-        })
-      }
+      log_alerts    = try(data.log_alerts, {})
     }
   }
 
