@@ -364,7 +364,7 @@ Each instance creates its own set of log alert rules — four scheduled query ru
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9, < 2.0 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 4.68.0, < 5.0 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 4.68.0, < 6.0 |
 | <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) | >= 0.3.5, < 1.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1, < 4.0 |
 | <a name="requirement_standesamt"></a> [standesamt](#requirement\_standesamt) | >= 2.0.1, < 3.0 |
@@ -373,7 +373,7 @@ Each instance creates its own set of log alert rules — four scheduled query ru
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 4.68.0, < 5.0 |
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 4.68.0, < 6.0 |
 | <a name="provider_modtm"></a> [modtm](#provider\_modtm) | >= 0.3.5, < 1.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1, < 4.0 |
 
