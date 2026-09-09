@@ -9,6 +9,17 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- **`azurerm` constraint widened to `>= 4.68.0, < 6.0`** — the module now admits the
+  azurerm 5.x line alongside 4.x. None of the resources it manages
+  (`azurerm_monitor_action_group`, `azurerm_monitor_metric_alert`,
+  `azurerm_monitor_scheduled_query_rules_alert`/`_v2`,
+  `azurerm_monitor_activity_log_alert`,
+  `azurerm_monitor_alert_processing_rule_suppression`, `azurerm_role_assignment`)
+  carries a breaking change in the azurerm 5.0 upgrade guide, so no configuration
+  changes are needed. Consumers pinned to 4.x are unaffected.
+
 ## [0.7.3] - 2026-08-25
 
 ### Fixed
