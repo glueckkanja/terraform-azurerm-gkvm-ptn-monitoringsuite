@@ -427,6 +427,12 @@ variable "fabric_workspace_id" {
   description = "Fabric workspace ID substituted into query templates via the $${fabric_workspace_id} placeholder. Required when using an alert profile that references a specific Fabric workspace."
 }
 
+variable "template_variables" {
+  type        = map(string)
+  default     = {}
+  description = "Additional template variables for log alert query templates: every key becomes a $${key} placeholder, substituted after the built-in placeholders (primary_scope, remote_ip, bandwidth, adx_cluster_uri, fabric_capacity_id, fabric_workspace_id, data_lake_deletion_exclusion_predicate, namespace_filter). Lets a consumer render rule parameters — for example a KQL predicate over the semantic models declared critical — without a module change per placeholder. When the map is non-empty, every remaining $${...} placeholder in a query must have a value, otherwise the plan fails."
+}
+
 variable "namespace" {
   type        = string
   default     = null
