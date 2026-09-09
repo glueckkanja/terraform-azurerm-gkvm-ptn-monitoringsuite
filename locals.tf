@@ -15,7 +15,7 @@ locals {
       "$${remote_ip}", var.remote_ip),
       "$${bandwidth}", tostring(var.bandwidth)),
       "$${data_lake_deletion_exclusion_predicate}", local._data_lake_deletion_predicate),
-      "$${namespace_filter}", local._namespace_filter)
+    "$${namespace_filter}", local._namespace_filter)
   }
 }
 
