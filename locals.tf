@@ -17,6 +17,20 @@ locals {
       "$${data_lake_deletion_exclusion_predicate}", local._data_lake_deletion_predicate),
     "$${namespace_filter}", local._namespace_filter)
   }
+
+  # Consumer-defined template variables (var.template_variables): every key is a ${key}
+  # placeholder. Applied only when the map is non-empty and the query still carries a
+  # placeholder, so existing consumers see byte-identical queries. The built-in late
+  # placeholders are merged in because templatestring resolves every ${...} it finds.
+  _query_with_template_variables = { for key, query in local._substituted_query : key =>
+    length(var.template_variables) > 0 && strcontains(query, "$${")
+    ? templatestring(query, merge({
+      adx_cluster_uri     = var.adx_cluster_uri
+      fabric_capacity_id  = var.fabric_capacity_id
+      fabric_workspace_id = var.fabric_workspace_id
+    }, var.template_variables))
+    : query
+  }
 }
 
 locals {

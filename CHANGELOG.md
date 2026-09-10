@@ -9,6 +9,15 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- **`template_variables`** — a `map(string)` of consumer-defined template variables for log
+  alert query templates; every key becomes a `${key}` placeholder, substituted after the
+  built-in placeholders. Rule parameters such as the KQL predicate over the semantic models a
+  customer declared critical (`${powerbi_critical_models_predicate}` in the `power_bi`
+  profile of gkvm-monitoring-defaults) no longer need a module variable each. Queries of
+  consumers that leave the map empty are unchanged.
+
 ### Changed
 
 - **`azurerm` constraint widened to `>= 4.68.0, < 6.0`** — the module now admits the

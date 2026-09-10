@@ -431,6 +431,7 @@ Each instance creates its own set of log alert rules — four scheduled query ru
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Resource group where alert resources will be created. | `string` | n/a | yes |
 | <a name="input_scopes"></a> [scopes](#input\_scopes) | List of Azure resource IDs to monitor. All alerts will target these scopes. Subscription-only scopes ('/subscriptions/<guid>') are also accepted — useful when only health alerts are deployed. | `list(string)` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to all resources created by this module. | `map(string)` | `null` | no |
+| <a name="input_template_variables"></a> [template\_variables](#input\_template\_variables) | Additional template variables for log alert query templates: every key becomes a ${key} placeholder, substituted after the built-in placeholders (primary\_scope, remote\_ip, bandwidth, adx\_cluster\_uri, fabric\_capacity\_id, fabric\_workspace\_id, data\_lake\_deletion\_exclusion\_predicate, namespace\_filter). Lets a consumer render rule parameters — for example a KQL predicate over the semantic models declared critical — without a module change per placeholder. When the map is non-empty, every remaining ${...} placeholder in a query must have a value, otherwise the plan fails. | `map(string)` | `{}` | no |
 
 ## Outputs
 
