@@ -20,15 +20,18 @@ jobs:
     steps:
       # Pin all actions to full commit SHAs to prevent supply-chain attacks via
       # tag mutation. Dependabot will propose PRs when new versions are released.
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history is required so the auto-generated release notes can
           # include all commits since the previous tag.
           fetch-depth: 0
+          # The release is published through the GitHub API, not through git,
+          # so no credentials need to stay behind in .git/config.
+          persist-credentials: false
 
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
-          tofu_version: 1.9.0
+          tofu_version: 1.12.6
           tofu_wrapper: false
 
       - name: Initialise providers
@@ -38,10 +41,19 @@ jobs:
       - name: Validate module configuration
         run: tofu validate
 
-      - uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
-        with:
-          generate_release_notes: true
+      # Published with the gh CLI that ships on the runner rather than a
+      # third-party action, so nothing outside this repository runs on the
+      # release path.
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          args=(--generate-notes)
           # Tags containing a hyphen (e.g. v1.0.0-alpha.1, v2.3.0-beta) are
           # marked as pre-releases automatically so consumers who pin to
           # stable releases are not inadvertently pulled onto pre-release code.
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" "${args[@]}"

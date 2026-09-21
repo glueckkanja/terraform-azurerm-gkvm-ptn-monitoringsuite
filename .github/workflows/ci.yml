@@ -25,11 +25,15 @@ jobs:
     steps:
       # Pin all actions to full commit SHAs to prevent supply-chain attacks via
       # tag mutation. Dependabot will propose PRs when new versions are released.
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          tofu_version: 1.9.0
+          # Nothing in this job talks to git after checkout, so the token
+          # actions/checkout would leave in .git/config is not needed.
+          persist-credentials: false
+
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: 1.12.6
           # Disable the wrapper so exit codes from tofu are passed through
           # directly; the wrapper can swallow non-zero exits in some versions.
           tofu_wrapper: false
@@ -47,14 +51,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          tofu_version: 1.9.0
+          # Nothing in this job talks to git after checkout, so the token
+          # actions/checkout would leave in .git/config is not needed.
+          persist-credentials: false
+
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: 1.12.6
           tofu_wrapper: false
 
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.TF_PLUGIN_CACHE_DIR }}
           # Key on terraform.tf — this project gitignores .terraform.lock.hcl,
@@ -76,14 +84,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          tofu_version: 1.9.0
+          # Nothing in this job talks to git after checkout, so the token
+          # actions/checkout would leave in .git/config is not needed.
+          persist-credentials: false
+
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: 1.12.6
           tofu_wrapper: false
 
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.TF_PLUGIN_CACHE_DIR }}
           # Both provider requirement files contribute to the cache key. This
@@ -112,20 +124,24 @@ jobs:
       # Required to upload SARIF results to GitHub Code Scanning.
       security-events: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in this job talks to git after checkout, so the token
+          # actions/checkout would leave in .git/config is not needed.
+          persist-credentials: false
 
       # soft_fail: true — Checkov findings are surfaced in the Code Scanning UI
       # but do not block the CI run. The SARIF upload on the next step is what
       # makes findings actionable; a hard fail here would hide the report when
       # Checkov exits non-zero before the upload step runs.
-      - uses: bridgecrewio/checkov-action@3203f966a7ccd680cd8f6aaa3c3c5b0b3e9afa32 # v12.3099.0
+      - uses: bridgecrewio/checkov-action@444c9db6fa75e2d9c19ebf1fde7322089be9009e # v12.3125.0
         with:
           framework: terraform
           soft_fail: true
           output_format: cli,sarif
           output_file_path: console,results.sarif
 
-      - uses: github/codeql-action/upload-sarif@f35333b910470a5408cb081b68f0701254a7d27b # v3.28.18
+      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         # Run on success or failure so SARIF is uploaded even when Checkov found
         # violations, but skip on cancellation to avoid uploading partial results.
         # continue-on-error: org-level restrictions may deny security-events API
@@ -142,11 +158,15 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4.1.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          tflint_version: v0.55.1
+          # Nothing in this job talks to git after checkout, so the token
+          # actions/checkout would leave in .git/config is not needed.
+          persist-credentials: false
+
+      - uses: terraform-linters/setup-tflint@1cf010d3c7aef302051ccdb68c14c5dc2efa34ef # v6.3.1
+        with:
+          tflint_version: v0.64.0
 
       - name: Init TFLint
         # GITHUB_TOKEN is passed here only so tflint --init can pull ruleset
@@ -176,10 +196,10 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
     env:
       # Pin the binary version so CI and local dev use the same terraform-docs.
-      TF_DOCS_VERSION: v0.22.0
+      TF_DOCS_VERSION: v0.24.0
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: # zizmor: ignore[artipacked] this job commits and pushes the regenerated README, so it needs the checkout credentials
           # Check out the actual PR branch so the commit lands on the right ref.
           # For pushes to main HEAD is already correct; github.head_ref is empty.
           ref: ${{ github.head_ref || github.ref_name }}
