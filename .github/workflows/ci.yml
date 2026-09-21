@@ -8,7 +8,12 @@ on:
 
 # Deny all permissions at workflow level; each job grants only what it needs.
 permissions:
-  contents: read
+  contents: read # Baseline read access; jobs narrow or widen as needed.
+
+# Superseded pushes to the same branch are wasted work; cancel them.
+concurrency:
+  group: ci-${{ github.event.pull_request.head.repo.full_name || github.repository }}/${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 env:
   # A single shared plugin cache dir reduces provider download time across jobs.
@@ -21,7 +26,7 @@ jobs:
     name: Verify OpenTofu formatting
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # Required to check out the module sources.
     steps:
       # Pin all actions to full commit SHAs to prevent supply-chain attacks via
       # tag mutation. Dependabot will propose PRs when new versions are released.
@@ -49,7 +54,7 @@ jobs:
     name: Initialise and validate module configuration
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # Required to check out the module sources.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -82,7 +87,7 @@ jobs:
     name: Run unit tests
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # Required to check out the module sources.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -120,9 +125,8 @@ jobs:
     name: Static analysis (Checkov)
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      # Required to upload SARIF results to GitHub Code Scanning.
-      security-events: write
+      contents: read # Required to check out the module sources.
+      security-events: write # Required to upload SARIF to Code Scanning.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -156,7 +160,7 @@ jobs:
     name: Lint with TFLint
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # Required to check out the module sources.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -189,9 +193,8 @@ jobs:
   docs:
     name: Regenerate docs
     runs-on: ubuntu-latest
-    # Write access required to push the regenerated README back to the PR branch.
     permissions:
-      contents: write
+      contents: write # Required to push the regenerated README to the PR branch.
     # Skip on forks — GITHUB_TOKEN has no push rights to the contributor's fork.
     if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
     env:
