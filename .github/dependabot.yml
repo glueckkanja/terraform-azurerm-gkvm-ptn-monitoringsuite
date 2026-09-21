@@ -7,6 +7,10 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    # Hold back freshly published versions for a week so a compromised release
+    # is likely to be yanked before Dependabot proposes it here.
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:
@@ -21,6 +25,10 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    # Hold back freshly published versions for a week so a compromised release
+    # is likely to be yanked before Dependabot proposes it here.
+    cooldown:
+      default-days: 7
     groups:
       terraform-providers:
         patterns:
