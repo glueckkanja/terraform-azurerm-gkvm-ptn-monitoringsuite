@@ -8,15 +8,20 @@ on:
 
 # Deny all by default; the release job needs write to create the GitHub release.
 permissions:
-  contents: read
+  contents: read # Baseline read access; the release job widens this.
+
+# Serialise releases per tag. Unlike CI, a release in flight must never be
+# cancelled: it would leave a tag partially published.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Validate and publish GitHub Release
     runs-on: ubuntu-latest
     permissions:
-      # Required to create the GitHub Release and upload assets.
-      contents: write
+      contents: write # Required to create the GitHub Release and upload assets.
     steps:
       # Pin all actions to full commit SHAs to prevent supply-chain attacks via
       # tag mutation. Dependabot will propose PRs when new versions are released.
