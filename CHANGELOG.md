@@ -11,6 +11,16 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- **Per-group action group naming** — `action_groups.<key>.naming` overrides the
+  module-level `convention`, `name_prefixes`, `name_suffixes`, `name_precedence` and
+  `hash_length` for one action group, and `naming.name` replaces the map key as the base
+  name. Unset attributes inherit the module-level inputs, so existing consumers are
+  unaffected.
+
+## [0.8.0] - 2026-09-10
+
+### Added
+
 - **`template_variables`** — a `map(string)` of consumer-defined template variables for log
   alert query templates; every key becomes a `${key}` placeholder, substituted after the
   built-in placeholders. Rule parameters such as the KQL predicate over the semantic models a

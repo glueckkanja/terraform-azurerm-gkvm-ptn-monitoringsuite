@@ -191,6 +191,17 @@ variable "action_groups" {
     severities = list(number)
     enabled    = optional(bool, true)
 
+    # Per-group naming overrides. Unset attributes inherit the module-level
+    # naming inputs; name defaults to the map key.
+    naming = optional(object({
+      name            = optional(string)
+      convention      = optional(string)
+      prefixes        = optional(list(string))
+      suffixes        = optional(list(string))
+      name_precedence = optional(list(string))
+      hash_length     = optional(number)
+    }), {})
+
     email_receivers = optional(map(object({
       name                    = string
       email_address           = string
@@ -237,7 +248,7 @@ variable "action_groups" {
     })), {})
   }))
   default     = {}
-  description = "Action groups to create within the module. Each action group includes severity routing and one or more receiver types."
+  description = "Action groups to create within the module. Each action group includes severity routing and one or more receiver types. The resource name is built by the standesamt naming function from the map key (or naming.name) with the module-level convention, prefixes, suffixes, name_precedence and hash_length; each of these can be overridden per group under naming."
 
   validation {
     condition = alltrue([

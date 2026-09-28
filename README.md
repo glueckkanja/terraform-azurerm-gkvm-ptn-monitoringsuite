@@ -68,6 +68,28 @@ The module supports two sources of action groups that are merged internally:
 
 Both use severity routing: each action group specifies which severity levels (0-4) it handles.
 
+### Action group naming
+
+A module-created action group is named by the standesamt naming function from its map key and the module-level naming inputs (`convention`, `name_prefixes`, `name_suffixes`, `name_precedence`, `hash_length`). Each of these can be overridden per group under `naming`; unset attributes inherit the module-level value, and `naming.name` replaces the map key as the base name:
+
+```hcl
+action_groups = {
+  customer = {
+    short_name = "customer"
+    severities = [2, 3, 4]
+    naming = {
+      name       = "customer-ops"   # base name instead of the map key
+      convention = "default"
+      prefixes   = ["contoso"]
+      suffixes   = ["weu"]
+    }
+    email_receivers = {
+      ops = { name = "ops", email_address = "ops@contoso.example" }
+    }
+  }
+}
+```
+
 ### Per-alert action group override
 
 When severity routing is too coarse — for example, a specific alert should notify only the customer and not the MSP — set `action_group_ids` directly on the alert. This bypasses severity routing for that alert and routes notifications exclusively to the listed action group resource IDs. All other alerts continue to use the global severity routing.
