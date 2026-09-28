@@ -248,7 +248,7 @@ variable "action_groups" {
     })), {})
   }))
   default     = {}
-  description = "Action groups to create within the module. Each action group includes severity routing and one or more receiver types. The resource name is built by the standesamt naming function from the map key (or naming.name) with the module-level convention, prefixes, suffixes, name_precedence and hash_length; each of these can be overridden per group under naming."
+  description = "Action groups to create within the module. Each action group includes severity routing and one or more receiver types. The resource name is built by the standesamt naming function from the map key (or naming.name) with the module-level convention, prefixes, suffixes, name_precedence and hash_length; each of these can be overridden per group under naming (convention, prefixes, suffixes, name_precedence, hash_length; naming.name replaces the key as the base name)."
 
   validation {
     condition = alltrue([

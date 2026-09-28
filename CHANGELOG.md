@@ -12,10 +12,11 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Added
 
 - **Per-group action group naming** — `action_groups.<key>.naming` overrides the
-  module-level `convention`, `name_prefixes`, `name_suffixes`, `name_precedence` and
-  `hash_length` for one action group, and `naming.name` replaces the map key as the base
-  name. Unset attributes inherit the module-level inputs, so existing consumers are
-  unaffected.
+  module-level naming inputs for one action group: `naming.convention`, `naming.prefixes`
+  (module-level `name_prefixes`), `naming.suffixes` (`name_suffixes`),
+  `naming.name_precedence` and `naming.hash_length`; `naming.name` replaces the map key as
+  the base name. Unset attributes inherit the module-level inputs, so existing consumers are
+  unaffected. Two groups resolving to the same resource name now fail the plan.
 
 ## [0.8.0] - 2026-09-10
 
@@ -28,6 +29,8 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   profile of gkvm-monitoring-defaults) no longer need a module variable each. Queries of
   consumers that leave the map empty are unchanged.
 
+## [0.7.5] - 2026-09-09
+
 ### Changed
 
 - **`azurerm` constraint widened to `>= 4.68.0, < 6.0`** — the module now admits the
@@ -38,6 +41,14 @@ and this module adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   `azurerm_monitor_alert_processing_rule_suppression`, `azurerm_role_assignment`)
   carries a breaking change in the azurerm 5.0 upgrade guide, so no configuration
   changes are needed. Consumers pinned to 4.x are unaffected.
+
+## [0.7.4] - 2026-08-27
+
+### Fixed
+
+- **Plan-known `for_each` keys** — the alert and role assignment `for_each` keys no longer
+  depend on the scope or workspace id, so a plan with an unknown scope or workspace id
+  (e.g. a workspace replacement) no longer fails with "invalid for_each argument" (#35).
 
 ## [0.7.3] - 2026-08-25
 

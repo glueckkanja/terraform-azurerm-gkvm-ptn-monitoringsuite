@@ -207,18 +207,19 @@ locals {
     }, config.name)
   }
 
-  # Per-group naming overrides win over the module-level inputs; the base
-  # name is naming.name, or the map key when unset.
+  # Per-group naming overrides win over the module-level inputs (null means
+  # unset, an empty list is an explicit override); the base name is
+  # naming.name, or the map key when unset.
   action_group_names = { for key, config in var.action_groups : key =>
     provider::standesamt::name(var.naming_configuration, "azurerm_monitor_action_group", {
-      convention      = coalesce(config.naming.convention, var.convention)
+      convention      = config.naming.convention != null ? config.naming.convention : var.convention
       location        = var.location
       environment     = var.environment
       prefixes        = config.naming.prefixes != null ? config.naming.prefixes : var.name_prefixes
       suffixes        = config.naming.suffixes != null ? config.naming.suffixes : var.name_suffixes
       name_precedence = config.naming.name_precedence != null ? config.naming.name_precedence : var.name_precedence
       hash_length     = config.naming.hash_length != null ? config.naming.hash_length : var.hash_length
-    }, coalesce(config.naming.name, key))
+    }, config.naming.name != null ? config.naming.name : key)
   }
 
   # Health alert names — one per subscription, suffixed with the subscription

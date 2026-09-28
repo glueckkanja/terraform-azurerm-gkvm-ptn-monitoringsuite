@@ -62,7 +62,7 @@ output "naming_configuration" {
 output "naming_configuration_custom" {
   value = {
     configuration = data.standesamt_config.custom.configuration
-    locations     = {}
+    locations     = data.standesamt_locations.this.locations
     schema        = data.standesamt_config.custom.schema
   }
 }

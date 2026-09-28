@@ -70,7 +70,7 @@ Both use severity routing: each action group specifies which severity levels (0-
 
 ### Action group naming
 
-A module-created action group is named by the standesamt naming function from its map key and the module-level naming inputs (`convention`, `name_prefixes`, `name_suffixes`, `name_precedence`, `hash_length`). Each of these can be overridden per group under `naming`; unset attributes inherit the module-level value, and `naming.name` replaces the map key as the base name:
+A module-created action group is named by the standesamt naming function from its map key and the module-level naming inputs (`convention`, `name_prefixes`, `name_suffixes`, `name_precedence`, `hash_length`). Each of these can be overridden per group under `naming` — `convention`, `prefixes` (for `name_prefixes`), `suffixes` (for `name_suffixes`), `name_precedence` and `hash_length`. Unset attributes inherit the module-level value, an empty list is an explicit override, and `naming.name` replaces the map key as the base name. Two groups that resolve to the same resource name fail the plan:
 
 ```hcl
 action_groups = {
