@@ -44,6 +44,9 @@ provider "standesamt" {
 
 data "standesamt_config" "this" {}
 
+# Location abbreviations for conventions that place the region in the name.
+data "standesamt_locations" "this" {}
+
 data "standesamt_config" "custom" {
   provider = standesamt.custom
 }
@@ -51,7 +54,7 @@ data "standesamt_config" "custom" {
 output "naming_configuration" {
   value = {
     configuration = data.standesamt_config.this.configuration
-    locations     = {}
+    locations     = data.standesamt_locations.this.locations
     schema        = data.standesamt_config.this.schema
   }
 }
@@ -59,7 +62,7 @@ output "naming_configuration" {
 output "naming_configuration_custom" {
   value = {
     configuration = data.standesamt_config.custom.configuration
-    locations     = {}
+    locations     = data.standesamt_locations.this.locations
     schema        = data.standesamt_config.custom.schema
   }
 }

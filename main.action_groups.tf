@@ -84,6 +84,10 @@ resource "azurerm_monitor_action_group" "this" {
   }
 
   lifecycle {
+    precondition {
+      condition     = length(distinct(values(local.action_group_names))) == length(local.action_group_names)
+      error_message = "action_groups resolve to duplicate resource names: ${join(", ", [for k, n in local.action_group_names : "${k} -> ${n}"])}. Give the colliding entries distinct naming.name values or naming overrides."
+    }
     ignore_changes = [tags]
 
     # nonsensitive() is applied to keys() of the sensitive pagerduty_config
